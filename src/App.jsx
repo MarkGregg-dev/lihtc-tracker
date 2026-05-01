@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getProjects, upsertProject, deleteProject, upsertDrawData, upsertLeasing } from './lib/supabase'
+import { getProjects, upsertProject, deleteProject, upsertDrawData, upsertLeasing, subscribeToProjects } from './lib/supabase'
 import { fm, pct, clr, STAGE_STYLE, daysUntil } from './lib/helpers'
 import { Bar, Kpi, SectionLabel, TabBar, Card, Btn } from './components/ui'
 import { DocsTab } from './components/DocsTab'
@@ -1105,7 +1105,15 @@ export default function App() {
     }
   }
 
-  useEffect(() => { if (authed) load() }, [authed])
+  useEffect(() => {
+    if (!authed) return
+    load()
+    // Subscribe to realtime changes — dashboard updates instantly when data changes
+    const unsubscribe = subscribeToProjects((payload) => {
+      load()
+    })
+    return () => unsubscribe()
+  }, [authed])
 
   async function handleDelete(id) {
     if (!confirm('Delete this project? All associated data will be permanently removed.')) return
