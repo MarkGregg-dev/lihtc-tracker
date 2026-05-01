@@ -11,17 +11,17 @@ export const supabase = createClient(url, key)
 
 // ── Projects ─────────────────────────────────────────────────────────
 export async function getProjects() {
-  const { data, error } = await supabase
+const { data, error } = await supabase
     .from('projects')
     .select(`
       *,
       draw_data(*),
       lpa_data(*),
-      leasing_snapshots(* order by created_at desc limit 1),
-      documents(id, folder, name, file_name, doc_type, storage_path, file_size, notes, sort_order order by folder, sort_order)
+      leasing_snapshots(*),
+      documents(id, folder, name, file_name, doc_type, storage_path, file_size, notes, sort_order)
     `)
     .order('sort_order')
-  if (error) throw error
+   if (error) throw error
   return data
 }
 
