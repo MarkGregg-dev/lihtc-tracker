@@ -3,6 +3,7 @@ import { getProjects, upsertProject, deleteProject, upsertDrawData, upsertLeasin
 import { fm, pct, clr, STAGE_STYLE, daysUntil } from './lib/helpers'
 import { Bar, Kpi, SectionLabel, TabBar, Card, Btn } from './components/ui'
 import { DocsTab } from './components/DocsTab'
+import { BinsTab } from './components/BinsTab'
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function barColor(v, type) {
@@ -329,6 +330,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
     { id: 'draw', label: 'Draws & budget' },
     { id: 'leasing', label: 'Leasing & financials' },
     { id: 'lpa', label: 'LPA compliance' },
+    { id: 'bins', label: 'BINs & buildings' },
     { id: 'docs', label: 'Documents' },
     { id: 'info', label: 'Info' },
   ]
@@ -377,6 +379,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
           {tab === 'draw' && <DrawTab d={draw} />}
           {tab === 'leasing' && <LeasingTab l={leasing} />}
           {tab === 'lpa' && <LpaTab lpa={lpa} />}
+          {tab === 'bins' && <BinsTab project={project} />}
           {tab === 'docs' && <DocsTab project={project} />}
           {tab === 'info' && (
             <div>
