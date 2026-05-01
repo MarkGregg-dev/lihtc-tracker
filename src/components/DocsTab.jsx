@@ -18,6 +18,8 @@ export function DocsTab({ project }) {
   const [noteVal, setNoteVal] = useState('')
   const [localDocs, setLocalDocs] = useState(docs)
   const [addOpen, setAddOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState({})
+  const toggleFolder = (folder) => setCollapsed(c => ({ ...c, [folder]: !c[folder] }))
   const [newMeta, setNewMeta] = useState({ name: '', folder: 'Monthly Reports', doc_type: 'pm-report', notes: '' })
   const fileRef = useRef()
   const addFileRef = useRef()
@@ -164,9 +166,14 @@ export function DocsTab({ project }) {
         const folderDocs = filtered.filter(d => d.folder === folder)
         if (!folderDocs.length) return null
         return (
-          <div key={folder} style={{ marginBottom: 18 }}>
-            <SectionLabel mt={0}>{FOLDER_LABELS[folder]} ({folderDocs.length})</SectionLabel>
-            <div style={{ border: s.border, borderRadius: 8, overflow: 'hidden' }}>
+          <div key={folder} style={{ marginBottom: collapsed[folder] ? 8 : 18 }}>
+            <div
+              onClick={() => toggleFolder(folder)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: '#6b6a63', textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 500, marginBottom: collapsed[folder] ? 0 : 6, cursor: 'pointer', userSelect: 'none', padding: '4px 2px' }}>
+              <span>{FOLDER_LABELS[folder]} <span style={{ color: '#c8c6bc', fontWeight: 400 }}>({folderDocs.length} · {folderDocs.filter(d => d.storage_path).length} uploaded)</span></span>
+              <span style={{ fontSize: 10, color: '#8f8e87', transform: collapsed[folder] ? 'rotate(-90deg)' : 'none', transition: 'transform .15s' }}>▼</span>
+            </div>
+            {!collapsed[folder] && <div style={{ border: s.border, borderRadius: 8, overflow: 'hidden' }}>
               {folderDocs.map((doc, i) => {
                 const tc = TYPE_COLORS[doc.doc_type] || TYPE_COLORS.reference
                 const hasFile = !!doc.storage_path
@@ -246,7 +253,7 @@ export function DocsTab({ project }) {
                   </div>
                 )
               })}
-            </div>
+            </div>}
           </div>
         )
       })}
