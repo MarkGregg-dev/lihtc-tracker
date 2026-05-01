@@ -59,11 +59,12 @@ export function DocsTab({ project }) {
   async function openDoc(doc) {
     if (!doc.storage_path) return
     try {
-      const url = await getDocumentUrl(doc.storage_path)
       const isExcel = doc.file_name && (doc.file_name.endsWith('.xlsx') || doc.file_name.endsWith('.xls'))
       if (isExcel) {
-        window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url), '_blank')
+        const publicUrl = 'https://iohcoankgpokhhldvzvy.supabase.co/storage/v1/object/public/project-docs/' + doc.storage_path.split('/').map(p => encodeURIComponent(p)).join('/')
+        window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(publicUrl), '_blank')
       } else {
+        const url = await getDocumentUrl(doc.storage_path)
         window.open(url, '_blank')
       }
     } catch (err) {
