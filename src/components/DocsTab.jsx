@@ -60,13 +60,21 @@ export function DocsTab({ project }) {
     if (!doc.storage_path) return
     try {
       const isExcel = doc.file_name && (doc.file_name.endsWith('.xlsx') || doc.file_name.endsWith('.xls'))
+      let href
       if (isExcel) {
         const publicUrl = 'https://iohcoankgpokhhldvzvy.supabase.co/storage/v1/object/public/project-docs/' + doc.storage_path.split('/').map(p => encodeURIComponent(p)).join('/')
-        window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(publicUrl), '_blank')
+        href = 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(publicUrl)
       } else {
-        const url = await getDocumentUrl(doc.storage_path)
-        window.open(url, '_blank')
+        href = await getDocumentUrl(doc.storage_path)
       }
+      // Use anchor click to bypass popup blockers
+      const a = document.createElement('a')
+      a.href = href
+      a.target = '_blank'
+      a.rel = 'noopener noreferrer'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
     } catch (err) {
       alert('Could not open document: ' + err.message)
     }
