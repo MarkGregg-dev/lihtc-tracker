@@ -450,6 +450,28 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
                 <SectionLabel>Notes</SectionLabel>
                 <div style={{ fontSize: 12, color: '#6b6a63', lineHeight: 1.6, padding: '8px 10px', background: '#eceae3', borderRadius: S.radius }}>{project.notes}</div>
               </>}
+              <SectionLabel>Tax-exempt bond</SectionLabel>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 8, marginBottom: 4 }}>
+                {[
+                  ['Issuer', 'SMHA Finance PFC'],
+                  ['Trustee', 'BOKF, NA'],
+                  ['Remarketing agent', 'Piper Sandler & Co.'],
+                  ['Bond counsel', 'Bracewell LLP'],
+                  ['Principal amount', '$38,000,000'],
+                  ['Interest rate', '3.70% per annum'],
+                  ['Dated', 'July 1, 2024'],
+                  ['Mandatory tender date', 'July 1, 2027'],
+                  ['Maturity date', 'July 1, 2028'],
+                  ['HUD lender', 'Gershman Investment Corp.'],
+                  ['HUD loan amount', '$53,000,000'],
+                ].map(([l, v]) => (
+                  <div key={l}>
+                    <div style={{ fontSize: 11, color: '#6b6a63', marginBottom: 2 }}>{l}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a18' }}>{v}</div>
+                  </div>
+                ))}
+              </div>
+
               {project.pm_contact && <>
                 <SectionLabel>On-site property manager</SectionLabel>
                 <div style={{ padding: '10px 14px', background: '#eceae3', borderRadius: S.radius, display: 'flex', flexDirection: 'column', gap: 4 }}>
