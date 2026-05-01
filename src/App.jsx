@@ -520,8 +520,7 @@ function LpaTab({ lpa }) {
               {
                 name: '2. Late Delivery Adjustment (§5.1(c)(iii))',
                 severity: 'critical',
-                formula: 'Component A: If FY2026 Actual Credits < $2,317,826 → shortfall × $0.60
-Component B: Each subsequent year with no Actual Credits → ($3,808,544 − Actual Credits) × $0.60',
+                formula: 'Component A: If FY2026 Actual Credits < $2,317,826, shortfall x $0.60. Component B: Each subsequent year with no Actual Credits, ($3,808,544 - Actual Credits) x $0.60',
                 trigger: 'Buildings not generating sufficient credits in first credit year (2026)',
                 impact: 'Stacks with Downward Adjustor. Reduces 4th contribution first then works backward. SLP pays any excess within 75 days.',
                 live: '⚠ Most live risk. Have accountants model FY2026 Actual Credits now based on current PIS dates.',
