@@ -19,7 +19,6 @@ export function DocsTab({ project }) {
   const [localDocs, setLocalDocs] = useState(docs)
   const [addOpen, setAddOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => {
-    // Start all folders collapsed
     const init = {}
     const FOLDERS = ['A. Land Acquisition','B. Bond','C. HUD Transcript','D. Equity','E. Land and Lease','F. Construction','G. Opinions','H. Title Misc','Monthly Reports']
     FOLDERS.forEach(f => { init[f] = true })
@@ -37,7 +36,6 @@ export function DocsTab({ project }) {
     const files = Array.from(e.target.files)
     if (!files.length) return
     setUploading(true)
-
     for (const file of files) {
       setUploadProgress(`Uploading ${file.name}...`)
       try {
@@ -46,18 +44,11 @@ export function DocsTab({ project }) {
         const docType = guessType(file.name)
         const doc = await uploadDocument(project.id, file, folder, name, docType)
         setLocalDocs(prev => {
-          // if a placeholder exists with matching filename, replace it
           const idx = prev.findIndex(d => d.file_name === file.name && !d.storage_path)
-          if (idx >= 0) {
-            const next = [...prev]
-            next[idx] = { ...next[idx], ...doc }
-            return next
-          }
+          if (idx >= 0) { const next = [...prev]; next[idx] = { ...next[idx], ...doc }; return next }
           return [...prev, doc]
         })
-      } catch (err) {
-        alert(`Upload failed for ${file.name}: ${err.message}`)
-      }
+      } catch (err) { alert(`Upload failed for ${file.name}: ${err.message}`) }
     }
     setUploading(false)
     setUploadProgress('')
@@ -75,17 +66,10 @@ export function DocsTab({ project }) {
       } else {
         href = await getDocumentUrl(doc.storage_path)
       }
-      // Use anchor click to bypass popup blockers
       const a = document.createElement('a')
-      a.href = href
-      a.target = '_blank'
-      a.rel = 'noopener noreferrer'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-    } catch (err) {
-      alert('Could not open document: ' + err.message)
-    }
+      a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'
+      document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    } catch (err) { alert('Could not open document: ' + err.message) }
   }
 
   async function handleDelete(doc) {
@@ -93,9 +77,7 @@ export function DocsTab({ project }) {
     try {
       await deleteDocument(doc)
       setLocalDocs(prev => prev.filter(d => d.id !== doc.id))
-    } catch (err) {
-      alert('Delete failed: ' + err.message)
-    }
+    } catch (err) { alert('Delete failed: ' + err.message) }
   }
 
   async function saveNote(doc) {
@@ -103,9 +85,7 @@ export function DocsTab({ project }) {
       await updateDocumentMeta(doc.id, { notes: noteVal })
       setLocalDocs(prev => prev.map(d => d.id === doc.id ? { ...d, notes: noteVal } : d))
       setEditingNote(null)
-    } catch (err) {
-      alert('Save failed: ' + err.message)
-    }
+    } catch (err) { alert('Save failed: ' + err.message) }
   }
 
   function guessType(filename) {
@@ -142,7 +122,6 @@ export function DocsTab({ project }) {
         </div>
       </div>
 
-      {/* Bulk upload */}
       <div style={{ background: '#eceae3', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>Upload files</div>
@@ -152,14 +131,9 @@ export function DocsTab({ project }) {
         {uploading && <span style={{ fontSize: 12, color: '#633806' }}>{uploadProgress}</span>}
       </div>
 
-      {/* Search + filter */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input
-          placeholder="Search documents..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          style={{ fontSize: 12, flex: 1, minWidth: 160, padding: '6px 10px', border: s.border, borderRadius: s.radius, background: '#fff' }}
-        />
+        <input placeholder="Search documents..." value={search} onChange={e => setSearch(e.target.value)}
+          style={{ fontSize: 12, flex: 1, minWidth: 160, padding: '6px 10px', border: s.border, borderRadius: s.radius, background: '#fff' }} />
         <select value={filter} onChange={e => setFilter(e.target.value)}
           style={{ fontSize: 12, padding: '6px 10px', border: s.border, borderRadius: s.radius, background: '#fff' }}>
           <option value="all">All folders</option>
@@ -167,104 +141,78 @@ export function DocsTab({ project }) {
         </select>
       </div>
 
-      {/* Document list by folder */}
       {FOLDER_ORDER.map(folder => {
         const folderDocs = filtered.filter(d => d.folder === folder)
         if (!folderDocs.length) return null
+        const isCollapsed = collapsed[folder]
         return (
-          <div key={folder} style={{ marginBottom: collapsed[folder] ? 8 : 18 }}>
+          <div key={folder} style={{ marginBottom: isCollapsed ? 4 : 18 }}>
             <div
               onClick={() => toggleFolder(folder)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 11, color: '#6b6a63', textTransform: 'uppercase', letterSpacing: '.04em', fontWeight: 500, marginBottom: collapsed[folder] ? 0 : 6, cursor: 'pointer', userSelect: 'none', padding: '4px 2px' }}>
-              <span>{FOLDER_LABELS[folder]} <span style={{ color: '#c8c6bc', fontWeight: 400 }}>({folderDocs.length} · {folderDocs.filter(d => d.storage_path).length} uploaded)</span></span>
-              <span style={{ fontSize: 10, color: '#8f8e87', transform: collapsed[folder] ? 'rotate(-90deg)' : 'none', transition: 'transform .15s' }}>▼</span>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', borderRadius: isCollapsed ? 8 : '8px 8px 0 0', background: '#eceae3', border: s.border, borderBottom: isCollapsed ? s.border : 'none', cursor: 'pointer', userSelect: 'none' }}>
+              <span style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>
+                {FOLDER_LABELS[folder]}
+                <span style={{ fontSize: 11, fontWeight: 400, color: '#6b6a63', marginLeft: 8 }}>
+                  {folderDocs.length} docs · {folderDocs.filter(d => d.storage_path).length} uploaded
+                </span>
+              </span>
+              <span style={{ fontSize: 11, color: '#8f8e87', transform: isCollapsed ? 'rotate(-90deg)' : 'none', transition: 'transform .2s', lineHeight: 1 }}>▼</span>
             </div>
-            {!collapsed[folder] && <div style={{ border: s.border, borderRadius: 8, overflow: 'hidden' }}>
-              {folderDocs.map((doc, i) => {
-                const tc = TYPE_COLORS[doc.doc_type] || TYPE_COLORS.reference
-                const hasFile = !!doc.storage_path
-                const isEditNote = editingNote === doc.id
-                return (
-                  <div key={doc.id} style={{
-                    padding: '9px 12px',
-                    borderBottom: i < folderDocs.length - 1 ? s.border : 'none',
-                    background: '#fff',
-                    display: 'flex', alignItems: 'flex-start', gap: 10,
-                  }}>
-                    {/* status dot */}
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: hasFile ? '#639922' : '#e5e3db', flexShrink: 0, marginTop: 4 }} />
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: '#1a1a18' }}>{doc.name}</span>
-                        <span style={{ ...tc, padding: '1px 7px', borderRadius: 100, fontSize: 10, fontWeight: 500 }}>{doc.doc_type}</span>
-                        {doc.file_size && <span style={{ fontSize: 10, color: '#8f8e87' }}>{fmtBytes(doc.file_size)}</span>}
-                      </div>
-
-                      {doc.file_name && (
-                        <div style={{ fontSize: 10, color: '#8f8e87', marginTop: 1 }}>{doc.file_name}</div>
-                      )}
-
-                      {isEditNote ? (
-                        <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
-                          <input
-                            autoFocus
-                            value={noteVal}
-                            onChange={e => setNoteVal(e.target.value)}
-                            placeholder="Add a note..."
-                            style={{ fontSize: 12, flex: 1, padding: '4px 8px', border: s.border, borderRadius: 6 }}
-                          />
-                          <Btn small onClick={() => saveNote(doc)}>Save</Btn>
-                          <Btn small onClick={() => setEditingNote(null)}>Cancel</Btn>
+            {!isCollapsed && (
+              <div style={{ border: s.border, borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
+                {folderDocs.map((doc, i) => {
+                  const tc = TYPE_COLORS[doc.doc_type] || TYPE_COLORS.reference
+                  const hasFile = !!doc.storage_path
+                  const isEditNote = editingNote === doc.id
+                  return (
+                    <div key={doc.id} style={{ padding: '9px 12px', borderBottom: i < folderDocs.length - 1 ? s.border : 'none', background: '#fff', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: hasFile ? '#639922' : '#e5e3db', flexShrink: 0, marginTop: 4 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: '#1a1a18' }}>{doc.name}</span>
+                          <span style={{ ...tc, padding: '1px 7px', borderRadius: 100, fontSize: 10, fontWeight: 500 }}>{doc.doc_type}</span>
+                          {doc.file_size && <span style={{ fontSize: 10, color: '#8f8e87' }}>{fmtBytes(doc.file_size)}</span>}
                         </div>
-                      ) : (
-                        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
-                          {hasFile ? (
-                            <button onClick={() => openDoc(doc)} style={{ fontSize: 11, color: '#185FA5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                              Open file
+                        {doc.file_name && <div style={{ fontSize: 10, color: '#8f8e87', marginTop: 1 }}>{doc.file_name}</div>}
+                        {isEditNote ? (
+                          <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
+                            <input autoFocus value={noteVal} onChange={e => setNoteVal(e.target.value)} placeholder="Add a note..."
+                              style={{ fontSize: 12, flex: 1, padding: '4px 8px', border: s.border, borderRadius: 6 }} />
+                            <Btn small onClick={() => saveNote(doc)}>Save</Btn>
+                            <Btn small onClick={() => setEditingNote(null)}>Cancel</Btn>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+                            {hasFile
+                              ? <button onClick={() => openDoc(doc)} style={{ fontSize: 11, color: '#185FA5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Open file</button>
+                              : <span style={{ fontSize: 11, color: '#8f8e87' }}>No file yet</span>}
+                            <button onClick={() => { setEditingNote(doc.id); setNoteVal(doc.notes || '') }}
+                              style={{ fontSize: 11, color: '#8f8e87', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                              {doc.notes ? 'Edit note' : '+ Note'}
                             </button>
-                          ) : (
-                            <span style={{ fontSize: 11, color: '#8f8e87' }}>No file yet</span>
-                          )}
-                          <button
-                            onClick={() => { setEditingNote(doc.id); setNoteVal(doc.notes || '') }}
-                            style={{ fontSize: 11, color: '#8f8e87', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                          >
-                            {doc.notes ? 'Edit note' : '+ Note'}
-                          </button>
-                          {doc.notes && <span style={{ fontSize: 11, color: '#6b6a63' }}>{doc.notes}</span>}
-                        </div>
-                      )}
+                            {doc.notes && <span style={{ fontSize: 11, color: '#6b6a63' }}>{doc.notes}</span>}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        {!hasFile && (
+                          <label style={{ fontSize: 11, color: '#185FA5', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                            Upload
+                            <input type="file" accept=".pdf,.xlsx,.xls,.docx,.doc" style={{ display: 'none' }}
+                              onChange={e => handleFileUpload(e, { folder: doc.folder, name: doc.name })} />
+                          </label>
+                        )}
+                        {hasFile && <button onClick={() => handleDelete(doc)} style={{ fontSize: 11, color: '#a32d2d', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Delete</button>}
+                      </div>
                     </div>
-
-                    {/* upload / delete */}
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                      {!hasFile && (
-                        <label style={{ fontSize: 11, color: '#185FA5', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                          Upload
-                          <input
-                            type="file"
-                            accept=".pdf,.xlsx,.xls,.docx,.doc"
-                            style={{ display: 'none' }}
-                            onChange={e => handleFileUpload(e, { folder: doc.folder, name: doc.name })}
-                          />
-                        </label>
-                      )}
-                      {hasFile && (
-                        <button onClick={() => handleDelete(doc)} style={{ fontSize: 11, color: '#a32d2d', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>}
+                  )
+                })}
+              </div>
+            )}
           </div>
         )
       })}
 
-      {/* Add document */}
       <div style={{ marginTop: 8 }}>
         {!addOpen ? (
           <Btn onClick={() => setAddOpen(true)}>+ Add document</Btn>
@@ -272,30 +220,12 @@ export function DocsTab({ project }) {
           <div style={{ background: '#fff', border: '0.5px solid #888780', borderRadius: 8, padding: '12px' }}>
             <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a18', marginBottom: 10 }}>Add document</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
-              {[
-                ['Name', 'name', 'text', 'PM Financials — May 2026'],
-                ['Folder', 'folder', 'select', null],
-                ['Type', 'doc_type', 'select2', null],
-                ['Notes', 'notes', 'text', 'Optional notes'],
-              ].map(([label, key, type, ph]) => (
+              {[['Name','name','text','PM Financials — May 2026'],['Folder','folder','select',null],['Type','doc_type','select2',null],['Notes','notes','text','Optional notes']].map(([label, key, type, ph]) => (
                 <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   <label style={{ fontSize: 11, color: '#6b6a63' }}>{label}</label>
-                  {type === 'text' && (
-                    <input value={newMeta[key]} onChange={e => setNewMeta(m => ({ ...m, [key]: e.target.value }))}
-                      placeholder={ph} style={{ fontSize: 12, padding: '5px 8px', border: s.border, borderRadius: 6 }} />
-                  )}
-                  {type === 'select' && (
-                    <select value={newMeta[key]} onChange={e => setNewMeta(m => ({ ...m, [key]: e.target.value }))}
-                      style={{ fontSize: 12, padding: '5px 8px', border: s.border, borderRadius: 6 }}>
-                      {FOLDER_ORDER.map(f => <option key={f} value={f}>{FOLDER_LABELS[f]}</option>)}
-                    </select>
-                  )}
-                  {type === 'select2' && (
-                    <select value={newMeta[key]} onChange={e => setNewMeta(m => ({ ...m, [key]: e.target.value }))}
-                      style={{ fontSize: 12, padding: '5px 8px', border: s.border, borderRadius: 6 }}>
-                      {Object.keys(TYPE_COLORS).map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  )}
+                  {type === 'text' && <input value={newMeta[key]} onChange={e => setNewMeta(m => ({ ...m, [key]: e.target.value }))} placeholder={ph} style={{ fontSize: 12, padding: '5px 8px', border: s.border, borderRadius: 6 }} />}
+                  {type === 'select' && <select value={newMeta[key]} onChange={e => setNewMeta(m => ({ ...m, [key]: e.target.value }))} style={{ fontSize: 12, padding: '5px 8px', border: s.border, borderRadius: 6 }}>{FOLDER_ORDER.map(f => <option key={f} value={f}>{FOLDER_LABELS[f]}</option>)}</select>}
+                  {type === 'select2' && <select value={newMeta[key]} onChange={e => setNewMeta(m => ({ ...m, [key]: e.target.value }))} style={{ fontSize: 12, padding: '5px 8px', border: s.border, borderRadius: 6 }}>{Object.keys(TYPE_COLORS).map(t => <option key={t} value={t}>{t}</option>)}</select>}
                 </div>
               ))}
             </div>
@@ -313,9 +243,7 @@ export function DocsTab({ project }) {
                     setLocalDocs(prev => [...prev, doc])
                   } else {
                     const { supabase } = await import('../lib/supabase')
-                    const { data } = await supabase.from('documents').insert({
-                      project_id: project.id, ...newMeta, sort_order: localDocs.length,
-                    }).select().single()
+                    const { data } = await supabase.from('documents').insert({ project_id: project.id, ...newMeta, sort_order: localDocs.length }).select().single()
                     setLocalDocs(prev => [...prev, data])
                   }
                   setNewMeta({ name: '', folder: 'Monthly Reports', doc_type: 'pm-report', notes: '' })
