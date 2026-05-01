@@ -410,6 +410,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
 // ── Main App ──────────────────────────────────────────────────────────
 export default function App() {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('lihtc-auth') === 'true')
+  const [authReady, setAuthReady] = useState(false)
   const [pw, setPw] = useState('')
   const [pwError, setPwError] = useState(false)
 
@@ -417,8 +418,10 @@ export default function App() {
 
   function handleLogin(e) {
     e.preventDefault()
-    if (pw === PASSWORD) {
+    if (pw.trim() === PASSWORD) {
       sessionStorage.setItem('lihtc-auth', 'true')
+      setPwError(false)
+      setPw('')
       setAuthed(true)
     } else {
       setPwError(true)
@@ -468,7 +471,7 @@ export default function App() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { if (authed) load() }, [authed])
 
   async function handleDelete(id) {
     if (!confirm('Delete this project? All associated data will be permanently removed.')) return
