@@ -11,17 +11,17 @@ export const supabase = createClient(url, key)
 
 // ── Projects ─────────────────────────────────────────────────────────
 export async function getProjects() {
-const { data, error } = await supabase
+  const { data, error } = await supabase
     .from('projects')
     .select(`
       *,
       draw_data(*),
       lpa_data(*),
-      leasing_snapshots(*),
-      documents(id, folder, name, file_name, doc_type, storage_path, file_size, notes, sort_order)
+      leasing_snapshots(* order by created_at desc limit 1),
+      documents(id, folder, name, file_name, doc_type, storage_path, file_size, notes, sort_order order by folder, sort_order)
     `)
     .order('sort_order')
-   if (error) throw error
+  if (error) throw error
   return data
 }
 
@@ -138,6 +138,19 @@ export async function updateDocumentMeta(id, updates) {
     .single()
   if (error) throw error
   return data
+}
+
+// ── Realtime subscription ────────────────────────────────────────────
+export function subscribeToProjects(onUpdate) {
+  const channel = supabase
+    .channel('project-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, onUpdate)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'draw_data' }, onUpdate)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'leasing_snapshots' }, onUpdate)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'lpa_data' }, onUpdate)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'documents' }, onUpdate)
+    .subscribe()
+  return () => supabase.removeChannel(channel)
 }
 
 // ── File size formatter ───────────────────────────────────────────────
