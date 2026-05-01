@@ -409,6 +409,46 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
 
 // ── Main App ──────────────────────────────────────────────────────────
 export default function App() {
+  const [authed, setAuthed] = useState(() => sessionStorage.getItem('lihtc-auth') === 'true')
+  const [pw, setPw] = useState('')
+  const [pwError, setPwError] = useState(false)
+
+  const PASSWORD = import.meta.env.VITE_APP_PASSWORD || 'lihtc2024'
+
+  function handleLogin(e) {
+    e.preventDefault()
+    if (pw === PASSWORD) {
+      sessionStorage.setItem('lihtc-auth', 'true')
+      setAuthed(true)
+    } else {
+      setPwError(true)
+      setPw('')
+    }
+  }
+
+  if (!authed) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f5f4f0' }}>
+      <div style={{ background: '#fff', border: '0.5px solid #e5e3db', borderRadius: 16, padding: '2.5rem 2rem', width: 320, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
+        <div style={{ fontSize: 18, fontWeight: 500, color: '#1a1a18', marginBottom: 4 }}>LIHTC Project Tracker</div>
+        <div style={{ fontSize: 13, color: '#6b6a63', marginBottom: 24 }}>Enter your password to continue</div>
+        <form onSubmit={handleLogin}>
+          <input
+            autoFocus
+            type="password"
+            value={pw}
+            onChange={e => { setPw(e.target.value); setPwError(false) }}
+            placeholder="Password"
+            style={{ width: '100%', fontSize: 14, padding: '10px 12px', border: pwError ? '0.5px solid #E24B4A' : '0.5px solid #c8c6bc', borderRadius: 8, marginBottom: 8, outline: 'none', background: '#fafaf8' }}
+          />
+          {pwError && <div style={{ fontSize: 12, color: '#E24B4A', marginBottom: 8 }}>Incorrect password</div>}
+          <button type="submit" style={{ width: '100%', padding: '10px', fontSize: 14, fontWeight: 500, background: '#1a1a18', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+            Sign in
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
