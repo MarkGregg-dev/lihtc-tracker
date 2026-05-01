@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { uploadDocument, getDocumentUrl, deleteDocument, fmtBytes } from '../lib/supabase'
 import { SectionLabel, Kpi, Btn } from './ui'
 import { fm } from '../lib/helpers'
 
@@ -75,6 +77,41 @@ export function BinsTab({ project }) {
       const cl = { ...b.checklist, [item]: !b.checklist[item] }
       return { ...b, checklist: cl }
     }))
+  }
+
+  async function uploadCO(buildingId, file) {
+    const b = buildings.find(x => x.id === buildingId)
+    if (!b) return
+    try {
+      const doc = await uploadDocument(
+        project.id, file,
+        'Certificates of Occupancy',
+        `CO — Building ${b.building}`,
+        'executed'
+      )
+      save(buildings.map(x => x.id === buildingId ? { ...x, co_doc: doc } : x))
+    } catch (err) {
+      alert('Upload failed: ' + err.message)
+    }
+  }
+
+  async function openCO(doc) {
+    try {
+      const url = await getDocumentUrl(doc.storage_path)
+      window.open(url, '_blank')
+    } catch (err) {
+      alert('Could not open CO: ' + err.message)
+    }
+  }
+
+  async function deleteCO(buildingId, doc) {
+    if (!confirm('Remove this CO?')) return
+    try {
+      await deleteDocument(doc)
+      save(buildings.map(b => b.id === buildingId ? { ...b, co_doc: null } : b))
+    } catch (err) {
+      alert('Delete failed: ' + err.message)
+    }
   }
 
   // Summary stats
@@ -276,6 +313,28 @@ export function BinsTab({ project }) {
                       {b.notes && (
                         <div style={{ fontSize: 12, color: '#6b6a63', padding: '7px 10px', background: '#eceae3', borderRadius: S.radius, marginBottom: 12 }}>{b.notes}</div>
                       )}
+
+                      {/* Certificate of Occupancy */}
+                      <SectionLabel mt={0}>Certificate of Occupancy</SectionLabel>
+                      <div style={{ marginBottom: 12 }}>
+                        {b.co_doc ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#EAF3DE', borderRadius: S.radius, border: '0.5px solid #C0DD97' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#639922', flexShrink: 0 }} />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 12, fontWeight: 500, color: '#27500A' }}>{b.co_doc.file_name}</div>
+                              {b.co_doc.file_size && <div style={{ fontSize: 10, color: '#6b6a63' }}>{fmtBytes(b.co_doc.file_size)}</div>}
+                            </div>
+                            <button onClick={() => openCO(b.co_doc)} style={{ fontSize: 11, color: '#185FA5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Open</button>
+                            <button onClick={() => deleteCO(b.id, b.co_doc)} style={{ fontSize: 11, color: '#a32d2d', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Remove</button>
+                          </div>
+                        ) : (
+                          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: S.borderMed, borderRadius: S.radius, fontSize: 12, color: '#6b6a63', cursor: 'pointer', background: '#fff' }}>
+                            + Upload CO
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png" style={{ display: 'none' }}
+                              onChange={e => { if (e.target.files[0]) uploadCO(b.id, e.target.files[0]) }} />
+                          </label>
+                        )}
+                      </div>
 
                       {/* PIS checklist */}
                       <SectionLabel mt={0}>Placed-in-service checklist</SectionLabel>
