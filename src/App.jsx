@@ -450,6 +450,18 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
                 <SectionLabel>Notes</SectionLabel>
                 <div style={{ fontSize: 12, color: '#6b6a63', lineHeight: 1.6, padding: '8px 10px', background: '#eceae3', borderRadius: S.radius }}>{project.notes}</div>
               </>}
+              {project.pm_contact && <>
+                <SectionLabel>On-site property manager</SectionLabel>
+                <div style={{ padding: '10px 14px', background: '#eceae3', borderRadius: S.radius, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: '#1a1a18' }}>{project.pm_contact.name}</div>
+                  <div style={{ fontSize: 12, color: '#6b6a63' }}>{project.pm_contact.title}</div>
+                  <div style={{ fontSize: 12, color: '#6b6a63' }}>{project.pm_contact.address}</div>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginTop: 2 }}>
+                    <a href={`tel:${project.pm_contact.phone}`} style={{ fontSize: 12, color: '#185FA5', textDecoration: 'none' }}>{project.pm_contact.phone}</a>
+                    <a href={`mailto:${project.pm_contact.email}`} style={{ fontSize: 12, color: '#185FA5', textDecoration: 'none' }}>{project.pm_contact.email}</a>
+                  </div>
+                </div>
+              </>}
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 <Btn onClick={() => onEdit(project)}>Edit project</Btn>
                 <Btn danger onClick={() => onDelete(project.id)}>Delete</Btn>
