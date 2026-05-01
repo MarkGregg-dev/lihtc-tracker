@@ -26,6 +26,125 @@ const S = {
   radiusLg: '12px',
 }
 
+// ── Capital sufficiency ───────────────────────────────────────────
+function CapitalSufficiency({ d, leasing }) {
+  const [monthlyDeficit, setMonthlyDeficit] = useState(23834)
+  const [monthsToStab, setMonthsToStab] = useState(12)
+
+  // Sources
+  const constructionRemaining = d?.construction_remaining || 0
+  const coContingency = d?.co_contingency_remaining || 0
+  const wcRemaining = d?.working_capital_remaining || 0
+  const opReserve = leasing?.cash_op_reserve || 0
+  const softCost = leasing?.cash_soft_cost || 0
+  const equityRemaining = (d?.equity_schedule || []).filter(e => e.status !== 'funded').reduce((a,e) => a+e.amount, 0)
+  const odgCap = 2695000
+
+  // Construction sufficiency
+  const constructionBuffer = coContingency - constructionRemaining
+  const constructionOk = constructionBuffer >= 0
+
+  // Lease-up deficit projection — linear from current deficit to break-even at stabilization
+  const stabNoi = 22749
+  let totalDeficit = 0
+  const monthlyProjection = []
+  for (let m = 1; m <= monthsToStab; m++) {
+    const progress = m / monthsToStab
+    const noi = -monthlyDeficit + (monthlyDeficit + stabNoi) * progress
+    if (noi < 0) totalDeficit += Math.abs(noi)
+    monthlyProjection.push({ month: m, noi: Math.round(noi) })
+  }
+
+  const liquidAvailable = wcRemaining + opReserve + softCost
+  const totalAvailable = liquidAvailable + odgCap
+  const leaseupSurplus = liquidAvailable - totalDeficit
+  const leaseupOk = leaseupSurplus >= 0
+
+  return (
+    <div style={{ marginTop: 20 }}>
+      <SectionLabel mt={0}>Capital sufficiency analysis</SectionLabel>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        {/* Construction */}
+        <div style={{ padding: '12px 14px', borderRadius: S.radius, background: constructionOk ? '#EAF3DE' : '#FCEBEB', border: `0.5px solid ${constructionOk ? '#C0DD97' : '#F09595'}` }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a18', marginBottom: 10 }}>
+            {constructionOk ? '✓' : '⚠'} Construction — {constructionOk ? 'Sufficient' : 'Gap identified'}
+          </div>
+          {[
+            ['Construction remaining', constructionRemaining, true],
+            ['CO contingency available', coContingency, false],
+            ['Buffer / (Gap)', constructionBuffer, false],
+          ].map(([label, val, isUse]) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+              <span style={{ color: '#6b6a63' }}>{label}</span>
+              <span style={{ fontWeight: 500, color: val < 0 ? '#a32d2d' : '#1a1a18' }}>{isUse ? `(${fm(val)})` : fm(val)}</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 11, color: constructionOk ? '#27500A' : '#791F1F', marginTop: 6, lineHeight: 1.4 }}>
+            {constructionOk
+              ? `CO contingency covers remaining construction with ${fm(constructionBuffer)} to spare.`
+              : `${fm(Math.abs(constructionBuffer))} gap. Working capital or equity advances may be needed.`}
+          </div>
+        </div>
+
+        {/* Lease-up */}
+        <div style={{ padding: '12px 14px', borderRadius: S.radius, background: leaseupOk ? '#EAF3DE' : '#FCEBEB', border: `0.5px solid ${leaseupOk ? '#C0DD97' : '#F09595'}` }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a18', marginBottom: 8 }}>
+            {leaseupOk ? '✓' : '⚠'} Lease-up through stabilization — {leaseupOk ? 'Sufficient' : 'Monitor closely'}
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 10, color: '#6b6a63', display: 'block', marginBottom: 2 }}>Monthly deficit ($)</label>
+              <input type="number" value={monthlyDeficit} onChange={e => setMonthlyDeficit(parseInt(e.target.value)||0)}
+                style={{ width: '100%', fontSize: 12, padding: '4px 7px', border: S.border, borderRadius: 6 }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 10, color: '#6b6a63', display: 'block', marginBottom: 2 }}>Months to stabilization</label>
+              <input type="number" value={monthsToStab} onChange={e => setMonthsToStab(parseInt(e.target.value)||1)}
+                style={{ width: '100%', fontSize: 12, padding: '4px 7px', border: S.border, borderRadius: 6 }} />
+            </div>
+          </div>
+          {[
+            ['Projected total deficit', -totalDeficit, true],
+            ['Working capital', wcRemaining, false],
+            ['Operating reserve', opReserve, false],
+            ['Soft cost contingency', softCost, false],
+            ['Total liquid available', liquidAvailable, false],
+            ['Surplus / (Gap)', leaseupSurplus, false],
+          ].map(([label, val, isUse]) => (
+            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
+              <span style={{ color: '#6b6a63', fontWeight: label.includes('Total') || label.includes('Surplus') ? 500 : 400 }}>{label}</span>
+              <span style={{ fontWeight: 500, color: val < 0 ? '#a32d2d' : '#1a1a18' }}>{isUse ? `(${fm(Math.abs(val))})` : fm(val)}</span>
+            </div>
+          ))}
+          <div style={{ fontSize: 11, color: '#6b6a63', marginTop: 6, lineHeight: 1.4 }}>
+            ODG cap {fm(odgCap)} available as backstop if reserves are exhausted. Equity remaining: {fm(equityRemaining)}.
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly NOI projection */}
+      <SectionLabel>Monthly NOI projection to stabilization</SectionLabel>
+      <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 80, marginBottom: 4 }}>
+        {monthlyProjection.map((m, i) => {
+          const maxAbs = Math.max(...monthlyProjection.map(x => Math.abs(x.noi)))
+          const h = Math.max(4, Math.round((Math.abs(m.noi) / maxAbs) * 70))
+          return (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <div style={{ fontSize: 8, color: m.noi < 0 ? '#a32d2d' : '#27500A', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                {m.noi < 0 ? `(${fm(Math.abs(m.noi))})` : fm(m.noi)}
+              </div>
+              <div style={{ width: '80%', height: h, background: m.noi < 0 ? '#E24B4A' : '#639922', borderRadius: 2 }} />
+              <div style={{ fontSize: 8, color: '#8f8e87' }}>M{m.month}</div>
+            </div>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 10, color: '#8f8e87', textAlign: 'center' }}>Red = operating deficit · Green = positive NOI · Adjust inputs above to model different scenarios</div>
+    </div>
+  )
+}
+
 // ── Draw tab ──────────────────────────────────────────────────────────
 function DrawTab({ d }) {
   if (!d) return <div style={{ fontSize: 13, color: '#8f8e87', padding: '1rem 0' }}>No draw data loaded.</div>
@@ -90,33 +209,42 @@ function DrawTab({ d }) {
         <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
           <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
             <thead><tr style={{ background: '#eceae3' }}>
-              {['Tranche', 'Amount', 'Status', 'Date'].map(h => (
+              {['Tranche', 'Scheduled', 'Status', 'Remaining', 'Date / conditions'].map(h => (
                 <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 500, color: '#6b6a63', borderBottom: S.border }}>{h}</th>
               ))}
             </tr></thead>
             <tbody>
-              {(d.equity_schedule || []).map((eq, i) => (
-                <tr key={i} style={{ borderBottom: i < d.equity_schedule.length-1 ? S.border : 'none', background: eq.status === 'funded' ? '#f5faf0' : '#fff' }}>
-                  <td style={{ padding: '7px 10px', color: '#1a1a18', fontWeight: 500 }}>{eq.label}</td>
-                  <td style={{ padding: '7px 10px', color: '#1a1a18' }}>{fm(eq.amount)}</td>
-                  <td style={{ padding: '7px 10px' }}>
-                    <span style={{ background: eq.status === 'funded' ? '#EAF3DE' : '#FAEEDA', color: eq.status === 'funded' ? '#27500A' : '#633806', padding: '2px 8px', borderRadius: 100, fontSize: 11, fontWeight: 500 }}>
-                      {eq.status === 'funded' ? 'Funded' : 'Pending'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '7px 10px', color: '#6b6a63', fontSize: 11 }}>{eq.date}</td>
-                </tr>
-              ))}
+              {(d.equity_schedule || []).map((eq, i) => {
+                const remaining = eq.status === 'funded' ? 0 : eq.amount
+                return (
+                  <tr key={i} style={{ borderBottom: i < d.equity_schedule.length-1 ? S.border : 'none', background: eq.status === 'funded' ? '#f5faf0' : '#fff' }}>
+                    <td style={{ padding: '7px 10px', color: '#1a1a18', fontWeight: 500 }}>{eq.label}</td>
+                    <td style={{ padding: '7px 10px', color: '#1a1a18' }}>{fm(eq.amount)}</td>
+                    <td style={{ padding: '7px 10px' }}>
+                      <span style={{ background: eq.status === 'funded' ? '#EAF3DE' : '#FAEEDA', color: eq.status === 'funded' ? '#27500A' : '#633806', padding: '2px 8px', borderRadius: 100, fontSize: 11, fontWeight: 500 }}>
+                        {eq.status === 'funded' ? 'Funded' : 'Pending'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '7px 10px', fontWeight: 500, color: remaining > 0 ? '#633806' : '#8f8e87' }}>
+                      {remaining > 0 ? fm(remaining) : '—'}
+                    </td>
+                    <td style={{ padding: '7px 10px', color: '#6b6a63', fontSize: 11 }}>{eq.date}</td>
+                  </tr>
+                )
+              })}
               <tr style={{ background: '#eceae3', borderTop: S.border }}>
                 <td style={{ padding: '7px 10px', fontWeight: 500, color: '#1a1a18' }}>Total equity</td>
                 <td style={{ padding: '7px 10px', fontWeight: 500, color: '#1a1a18' }}>{fm((d.equity_schedule||[]).reduce((a,e) => a+e.amount,0))}</td>
-                <td colSpan={2} style={{ padding: '7px 10px', fontSize: 11, color: '#6b6a63' }}>
-                  {(d.equity_schedule||[]).filter(e=>e.status==='funded').length} of {(d.equity_schedule||[]).length} funded
-                </td>
+                <td style={{ padding: '7px 10px', fontSize: 11, color: '#6b6a63' }}>{(d.equity_schedule||[]).filter(e=>e.status==='funded').length} of {(d.equity_schedule||[]).length} funded</td>
+                <td style={{ padding: '7px 10px', fontWeight: 500, color: '#633806' }}>{fm((d.equity_schedule||[]).filter(e=>e.status!=='funded').reduce((a,e)=>a+e.amount,0))}</td>
+                <td style={{ padding: '7px 10px', fontSize: 11, color: '#8f8e87' }}>remaining to fund</td>
               </tr>
             </tbody>
           </table>
         </div>
+
+
+        <CapitalSufficiency d={d} leasing={null} />
 
         {(d.change_orders || []).length > 0 && <>
           <SectionLabel>Change orders — {fm(totalCO)} total across {d.change_orders.length} COs</SectionLabel>
