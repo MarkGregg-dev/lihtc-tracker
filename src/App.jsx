@@ -25,78 +25,119 @@ function DrawTab({ d }) {
   if (!d) return <div style={{ fontSize: 13, color: '#8f8e87', padding: '1rem 0' }}>No draw data loaded.</div>
   const spentPct = pct(d.total_spent, d.total_budget)
   const totalCO = (d.change_orders || []).reduce((a, c) => a + (c.amount || 0), 0)
+  const wcUsed = d.working_capital_start - d.working_capital_remaining
+  const coUsed = d.co_contingency_start - d.co_contingency_remaining
+
   return (
-    <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 8, marginBottom: 14 }}>
-        <Kpi label="Total budget" value={fm(d.total_budget)} />
-        <Kpi label="Total spent" value={fm(d.total_spent)} sub={`${spentPct}% of budget`} />
-        <Kpi label="Remaining" value={fm(d.total_budget - d.total_spent)} />
-        <Kpi label="Draw #" value={`#${d.last_draw_num}`} />
-        <Kpi label="Construction remaining" value={fm(d.construction_remaining)} />
-      </div>
-
-      <SectionLabel mt={0}>Budget vs spent</SectionLabel>
-      {[
-        ['Total project', d.total_spent, d.total_budget],
-        ['Construction (NRP)', d.construction_spent, d.construction_budget],
-        ['Working capital', d.working_capital_start - d.working_capital_remaining, d.working_capital_start],
-        ['CO contingency', d.co_contingency_start - d.co_contingency_remaining, d.co_contingency_start],
-      ].map(([label, spent, budget]) => (
-        <div key={label} style={{ marginBottom: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#6b6a63', marginBottom: 3 }}>
-            <span>{label}</span>
-            <span style={{ fontWeight: 500, color: '#1a1a18' }}>{fm(spent)} / {fm(budget)} ({pct(spent, budget)}%)</span>
-          </div>
-          <Bar value={spent} max={budget} color={barColor(pct(spent, budget), 'b')} height={7} />
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+      {/* LEFT COLUMN */}
+      <div>
+        {/* Top KPIs - 3 across */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 14 }}>
+          <Kpi label="Total budget" value={fm(d.total_budget)} />
+          <Kpi label="Total spent" value={fm(d.total_spent)} sub={`${spentPct}% of budget`} />
+          <Kpi label="Remaining" value={fm(d.total_budget - d.total_spent)} />
         </div>
-      ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 16 }}>
+          <Kpi label="Draw #" value={`#${d.last_draw_num}`} sub={`of ~24 draws`} />
+          <Kpi label="Construction remaining" value={fm(d.construction_remaining)} />
+          <Kpi label="Total change orders" value={fm(totalCO)} sub={`${(d.change_orders||[]).length} COs`} />
+        </div>
 
-      <SectionLabel>Contingency</SectionLabel>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+        <SectionLabel mt={0}>Budget vs spent</SectionLabel>
         {[
-          ['Working capital remaining', d.working_capital_remaining, d.working_capital_start],
-          ['CO contingency remaining', d.co_contingency_remaining, d.co_contingency_start],
-        ].map(([label, val, start]) => (
-          <div key={label} style={{ padding: '10px 12px', background: '#eceae3', borderRadius: S.radius }}>
-            <div style={{ fontSize: 11, color: '#6b6a63' }}>{label}</div>
-            <div style={{ fontSize: 18, fontWeight: 500, color: val < start * 0.2 ? '#a32d2d' : '#1a1a18' }}>{fm(val)}</div>
-            <div style={{ fontSize: 11, color: '#8f8e87' }}>of {fm(start)} original</div>
+          ['Total project', d.total_spent, d.total_budget],
+          ['Construction (NRP)', d.construction_spent, d.construction_budget],
+          ['Working capital escrow', wcUsed, d.working_capital_start],
+          ['CO contingency escrow', coUsed, d.co_contingency_start],
+        ].map(([label, spent, budget]) => (
+          <div key={label} style={{ marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#6b6a63', marginBottom: 3 }}>
+              <span>{label}</span>
+              <span style={{ fontWeight: 500, color: '#1a1a18' }}>{fm(spent)} / {fm(budget)} <span style={{ color: '#8f8e87', fontWeight: 400 }}>({pct(spent, budget)}%)</span></span>
+            </div>
+            <Bar value={spent} max={budget} color={barColor(pct(spent, budget), 'b')} height={8} />
           </div>
         ))}
+
+        <SectionLabel>Contingency balances</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 0 }}>
+          {[
+            ['Working capital remaining', d.working_capital_remaining, d.working_capital_start],
+            ['CO contingency remaining', d.co_contingency_remaining, d.co_contingency_start],
+          ].map(([label, val, start]) => (
+            <div key={label} style={{ padding: '10px 12px', background: '#eceae3', borderRadius: S.radius }}>
+              <div style={{ fontSize: 11, color: '#6b6a63', marginBottom: 3 }}>{label}</div>
+              <div style={{ fontSize: 20, fontWeight: 500, color: val < start * 0.2 ? '#a32d2d' : '#1a1a18' }}>{fm(val)}</div>
+              <div style={{ fontSize: 11, color: '#8f8e87', marginTop: 2 }}>of {fm(start)} · {pct(start-val, start)}% used</div>
+              <div style={{ marginTop: 6, height: 5, background: '#c8c6bc', borderRadius: 3, overflow: 'hidden' }}>
+                <div style={{ width: `${pct(start-val, start)}%`, height: '100%', background: val < start*0.2 ? '#E24B4A' : '#378ADD', borderRadius: 3 }} />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {(d.change_orders || []).length > 0 && <>
-        <SectionLabel>Change orders ({d.change_orders.length} · {fm(totalCO)} total)</SectionLabel>
-        <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 14 }}>
-          <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+      {/* RIGHT COLUMN */}
+      <div>
+        <SectionLabel mt={0}>Equity pay-in schedule</SectionLabel>
+        <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
+          <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
             <thead><tr style={{ background: '#eceae3' }}>
-              {['CO #', 'Description', 'Amount', 'Date'].map(h => (
+              {['Tranche', 'Amount', 'Status', 'Date'].map(h => (
                 <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 500, color: '#6b6a63', borderBottom: S.border }}>{h}</th>
               ))}
             </tr></thead>
-            <tbody>{(d.change_orders || []).map((co, i) => (
-              <tr key={i} style={{ borderBottom: S.border }}>
-                <td style={{ padding: '6px 10px', color: '#6b6a63' }}>CO #{co.num}</td>
-                <td style={{ padding: '6px 10px', color: '#1a1a18' }}>{co.desc || '—'}</td>
-                <td style={{ padding: '6px 10px', fontWeight: 500, color: '#1a1a18' }}>{fm(co.amount)}</td>
-                <td style={{ padding: '6px 10px', color: '#6b6a63' }}>{co.date}</td>
+            <tbody>
+              {(d.equity_schedule || []).map((eq, i) => (
+                <tr key={i} style={{ borderBottom: i < d.equity_schedule.length-1 ? S.border : 'none', background: eq.status === 'funded' ? '#f5faf0' : '#fff' }}>
+                  <td style={{ padding: '7px 10px', color: '#1a1a18', fontWeight: 500 }}>{eq.label}</td>
+                  <td style={{ padding: '7px 10px', color: '#1a1a18' }}>{fm(eq.amount)}</td>
+                  <td style={{ padding: '7px 10px' }}>
+                    <span style={{ background: eq.status === 'funded' ? '#EAF3DE' : '#FAEEDA', color: eq.status === 'funded' ? '#27500A' : '#633806', padding: '2px 8px', borderRadius: 100, fontSize: 11, fontWeight: 500 }}>
+                      {eq.status === 'funded' ? 'Funded' : 'Pending'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '7px 10px', color: '#6b6a63', fontSize: 11 }}>{eq.date}</td>
+                </tr>
+              ))}
+              <tr style={{ background: '#eceae3', borderTop: S.border }}>
+                <td style={{ padding: '7px 10px', fontWeight: 500, color: '#1a1a18' }}>Total equity</td>
+                <td style={{ padding: '7px 10px', fontWeight: 500, color: '#1a1a18' }}>{fm((d.equity_schedule||[]).reduce((a,e) => a+e.amount,0))}</td>
+                <td colSpan={2} style={{ padding: '7px 10px', fontSize: 11, color: '#6b6a63' }}>
+                  {(d.equity_schedule||[]).filter(e=>e.status==='funded').length} of {(d.equity_schedule||[]).length} funded
+                </td>
               </tr>
-            ))}</tbody>
+            </tbody>
           </table>
         </div>
-      </>}
 
-      <SectionLabel>Equity pay-in schedule</SectionLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {(d.equity_schedule || []).map((eq, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 10px', borderRadius: S.radius, background: eq.status === 'funded' ? '#EAF3DE' : '#eceae3', border: `0.5px solid ${eq.status === 'funded' ? '#C0DD97' : '#e5e3db'}` }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: eq.status === 'funded' ? '#639922' : '#c8c6bc', flexShrink: 0 }} />
-            <div style={{ flex: 1, fontSize: 12, color: '#1a1a18' }}>{eq.label}</div>
-            <div style={{ fontSize: 12, fontWeight: 500 }}>{fm(eq.amount)}</div>
-            <div style={{ fontSize: 11, color: '#6b6a63', width: 60, textAlign: 'right' }}>{eq.date}</div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: eq.status === 'funded' ? '#27500A' : '#8f8e87', width: 48, textAlign: 'right' }}>{eq.status === 'funded' ? 'Funded' : 'Pending'}</div>
+        {(d.change_orders || []).length > 0 && <>
+          <SectionLabel>Change orders — {fm(totalCO)} total across {d.change_orders.length} COs</SectionLabel>
+          <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden' }}>
+            <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+              <thead><tr style={{ background: '#eceae3' }}>
+                {['CO #', 'Description', 'Amount', 'Date'].map(h => (
+                  <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 500, color: '#6b6a63', borderBottom: S.border }}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>{(d.change_orders || []).map((co, i) => (
+                <tr key={i} style={{ borderBottom: i < d.change_orders.length-1 ? S.border : 'none' }}>
+                  <td style={{ padding: '6px 10px', color: '#6b6a63' }}>CO #{co.num}</td>
+                  <td style={{ padding: '6px 10px', color: '#1a1a18' }}>{co.desc || '—'}</td>
+                  <td style={{ padding: '6px 10px', fontWeight: 500, color: '#1a1a18' }}>{fm(co.amount)}</td>
+                  <td style={{ padding: '6px 10px', color: '#6b6a63' }}>{co.date}</td>
+                </tr>
+              ))}
+              <tr style={{ background: '#eceae3', borderTop: S.border }}>
+                <td colSpan={2} style={{ padding: '6px 10px', fontWeight: 500, color: '#1a1a18' }}>Total CO spend</td>
+                <td style={{ padding: '6px 10px', fontWeight: 500, color: '#1a1a18' }}>{fm(totalCO)}</td>
+                <td style={{ padding: '6px 10px', fontSize: 11, color: '#6b6a63' }}>of {fm(d.co_contingency_start)} contingency</td>
+              </tr>
+              </tbody>
+            </table>
           </div>
-        ))}
+        </>}
       </div>
     </div>
   )
@@ -515,7 +556,7 @@ export default function App() {
   )
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '1.5rem 1rem 4rem', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
+    <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1.5rem 2rem 4rem', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ fontSize: 20, fontWeight: 500, color: '#1a1a18' }}>LIHTC project tracker</span>
