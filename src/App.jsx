@@ -240,127 +240,469 @@ function LeasingTab({ l }) {
 // ── LPA tab ───────────────────────────────────────────────────────────
 function LpaTab({ lpa }) {
   if (!lpa) return <div style={{ fontSize: 13, color: '#8f8e87', padding: '1rem 0' }}>No LPA data loaded.</div>
+  const [subTab, setSubTab] = useState('overview')
+
   const funded = (lpa.capital_contributions || []).filter(c => c.status === 'funded')
   const totalFunded = funded.reduce((a, c) => a + (c.amount || 0), 0)
-  const sbg = { funded: '#EAF3DE', pending: '#FAEEDA', 'at-risk': '#FCEBEB', complete: '#EAF3DE' }
-  const scl = { funded: '#27500A', pending: '#633806', 'at-risk': '#791F1F', complete: '#27500A' }
+  const totalEquity = lpa.total_equity || 0
+  const pendingEquity = totalEquity - totalFunded
+  const devFeeRemaining = lpa.dev_fee_deferred || 0
+  const odgCap = lpa.odg_cap || 2695000
+  const odgUsed = 0 // update as ODG draws are made
+
+  const SUB = [
+    { id: 'overview',    label: 'Overview' },
+    { id: 'equity',      label: 'Equity & adjustors' },
+    { id: 'guarantees',  label: 'Guarantees' },
+    { id: 'dates',       label: 'Key dates' },
+    { id: 'reporting',   label: 'Reporting' },
+    { id: 'waterfall',   label: 'Waterfall & conversion' },
+  ]
+
   const sevcl = { critical: '#a32d2d', high: '#633806' }
   const sevbg = { critical: '#FCEBEB', high: '#FAEEDA' }
 
   return (
     <div>
-      <div style={{ fontSize: 11, color: '#8f8e87', marginBottom: 12 }}>{lpa.entity} · {lpa.investor_lp}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 8, marginBottom: 14 }}>
-        <Kpi label="Total equity" value={fm(lpa.total_equity)} sub={`@ $${lpa.credit_price}/credit`} />
-        <Kpi label="Funded" value={fm(totalFunded)} sub={`${Math.round(totalFunded / lpa.total_equity * 100)}% of total`} />
-        <Kpi label="NCF % to GP/SLP" value={`${lpa.ncf_pct}%`} />
-        <Kpi label="Dev fee deferred" value={fm(lpa.dev_fee_deferred)} warn />
-        <Kpi label="Stabilization deadline" value="Jun 30, 2027" warn />
+      <div style={{ fontSize: 11, color: '#8f8e87', marginBottom: 10 }}>{lpa.entity} · Investor LP: {lpa.investor_lp}</div>
+
+      {/* Sub-tab bar */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 16, border: S.border, borderRadius: S.radius, overflow: 'hidden', width: 'fit-content', flexWrap: 'wrap' }}>
+        {SUB.map((t, i) => (
+          <div key={t.id} onClick={() => setSubTab(t.id)} style={{
+            padding: '5px 14px', fontSize: 12, cursor: 'pointer',
+            borderRight: i < SUB.length - 1 ? S.border : 'none',
+            background: subTab === t.id ? '#eceae3' : '#fff',
+            color: subTab === t.id ? '#1a1a18' : '#6b6a63',
+            fontWeight: subTab === t.id ? 500 : 400,
+          }}>{t.label}</div>
+        ))}
       </div>
 
-      <SectionLabel mt={0}>Capital contribution schedule</SectionLabel>
-      <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 14 }}>
-        <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-          <thead><tr style={{ background: '#eceae3' }}>
-            {['Tranche', 'Amount', 'Status', 'Conditions / earliest date'].map(h => (
-              <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 500, color: '#6b6a63', borderBottom: S.border }}>{h}</th>
+      {/* ── OVERVIEW ── */}
+      {subTab === 'overview' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <SectionLabel mt={0}>Deal summary</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 14 }}>
+              <Kpi label="Total equity" value={fm(totalEquity)} sub={`@ $${lpa.credit_price}/credit`} />
+              <Kpi label="Funded to date" value={fm(totalFunded)} sub={`${Math.round(totalFunded/totalEquity*100)}% of total`} />
+              <Kpi label="Pending equity" value={fm(pendingEquity)} warn />
+              <Kpi label="Projected credits" value={fm(lpa.projected_credits)} sub="at $0.8275/credit" />
+              <Kpi label="Dev fee total" value={fm(lpa.dev_fee_total)} sub={`$${(lpa.dev_fee_paid/1e6).toFixed(1)}M paid`} />
+              <Kpi label="Dev fee deferred" value={fm(devFeeRemaining)} sub="due by Dec 31 2039" warn />
+              <Kpi label="NCF % to GP/SLP" value={`${lpa.ncf_pct}%`} sub="drops if LP loans > $50K" />
+              <Kpi label="ODG cap" value={fm(odgCap)} sub="Operating deficit guaranty" />
+            </div>
+
+            <SectionLabel>Parties</SectionLabel>
+            {[
+              ['Partnership', lpa.entity],
+              ['General Partner', lpa.gp],
+              ['Special LP (SLP)', lpa.slp],
+              ['Investor LP', lpa.investor_lp],
+            ].map(([label, val]) => (
+              <div key={label} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: '0.5px solid #f0ede6', fontSize: 12 }}>
+                <span style={{ color: '#6b6a63', width: 130, flexShrink: 0 }}>{label}</span>
+                <span style={{ fontWeight: 500, color: '#1a1a18' }}>{val}</span>
+              </div>
             ))}
-          </tr></thead>
-          <tbody>{(lpa.capital_contributions || []).map((c, i) => (
-            <tr key={i} style={{ borderBottom: S.border }}>
-              <td style={{ padding: '6px 10px', fontWeight: 500, color: '#1a1a18' }}>{c.label}</td>
-              <td style={{ padding: '6px 10px' }}>{fm(c.amount)}</td>
-              <td style={{ padding: '6px 10px' }}>
-                <span style={{ background: sbg[c.status] || '#FAEEDA', color: scl[c.status] || '#633806', padding: '2px 7px', borderRadius: 100, fontSize: 11, fontWeight: 500 }}>
-                  {c.status === 'funded' ? 'Funded' : 'Pending'}
-                </span>
-              </td>
-              <td style={{ padding: '6px 10px', color: '#6b6a63', fontSize: 11 }}>{c.trigger || c.date}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
+          </div>
 
-      <SectionLabel>Key dates & deadlines</SectionLabel>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-        {(lpa.key_dates || []).map((d, i) => {
-          const days = daysUntil(d.date)
-          const urgent = days !== null && days < 180 && d.status !== 'complete'
-          const critical = days !== null && days < 60 && d.status !== 'complete'
-          const bg = d.status === 'complete' ? '#EAF3DE' : d.status === 'at-risk' ? '#FCEBEB' : urgent ? '#FAEEDA' : '#eceae3'
-          const dot = d.status === 'complete' ? '#639922' : d.status === 'at-risk' ? '#E24B4A' : urgent ? '#BA7517' : '#c8c6bc'
-          return (
-            <div key={i} style={{ padding: '8px 10px', borderRadius: S.radius, background: bg, border: S.border }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0, marginTop: 3 }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>{d.label}</span>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                      {days !== null && d.status !== 'complete' && (
-                        <span style={{ fontSize: 11, color: critical ? '#a32d2d' : urgent ? '#633806' : '#8f8e87', fontWeight: critical ? 500 : 400 }}>
-                          {days > 0 ? `${days}d` : `${Math.abs(days)}d ago`}
+          <div>
+            <SectionLabel mt={0}>Critical risk flags</SectionLabel>
+            {[
+              { label: 'Stabilization deadline', date: 'Jun 30, 2027', risk: 'Repurchase put activates — SLP buys back AHF interest at all capital contributed + Prime+2% or 10% interest', severity: 'critical' },
+              { label: 'All buildings in service', date: 'Dec 31, 2026', risk: 'Required for bonus depreciation (8 bldgs at 20%) and Repurchase Put avoidance', severity: 'critical' },
+              { label: 'Bonus depreciation (40%) — 2 bldgs', date: 'Dec 31, 2025', risk: 'If missed: Downward Bonus Depreciation Adjustor reduces 4th capital contribution — amount determined by AHF unilaterally', severity: 'critical' },
+              { label: 'Property tax exemption', date: 'Ongoing', risk: 'UNCAPPED guarantee — if SMHA/PFC exemption is lost, SLP funds the entire tax bill. Also a Conversion Event.', severity: 'critical' },
+              { label: 'NCF % dilution threshold', date: 'Ongoing', risk: 'If Investor LP Loans ever exceed $50,000, NCF % permanently drops from 85%. Never reversible.', severity: 'high' },
+              { label: 'Bonds paid in full', date: 'Jul 1, 2028', risk: '$38M bonds must be fully redeemed. Failure is a Repurchase Event.', severity: 'high' },
+              { label: 'ODG cap watch', date: 'Ongoing', risk: `ODG cap is ${fm(odgCap)}. At current burn rate, monitor balance closely. Exceeding cap means AHF makes Investor LP Loans at 10-15% interest.`, severity: 'high' },
+            ].map((r, i) => (
+              <div key={i} style={{ padding: '8px 10px', borderRadius: S.radius, background: sevbg[r.severity], border: `0.5px solid ${r.severity === 'critical' ? '#F09595' : '#FAC775'}`, marginBottom: 5 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>{r.label}</span>
+                  <span style={{ fontSize: 11, color: '#6b6a63', flexShrink: 0 }}>{r.date}</span>
+                </div>
+                <div style={{ fontSize: 11, color: sevcl[r.severity], lineHeight: 1.4 }}>{r.risk}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── EQUITY & ADJUSTORS ── */}
+      {subTab === 'equity' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <SectionLabel mt={0}>Capital contribution schedule</SectionLabel>
+            <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
+              <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
+                <thead><tr style={{ background: '#eceae3' }}>
+                  {['Tranche', 'Amount', 'Status', 'Earliest / conditions'].map(h => (
+                    <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 500, color: '#6b6a63', borderBottom: S.border }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>
+                  {(lpa.capital_contributions || []).map((c, i) => (
+                    <tr key={i} style={{ borderBottom: S.border, background: c.status === 'funded' ? '#f5faf0' : '#fff' }}>
+                      <td style={{ padding: '7px 10px', fontWeight: 500, color: '#1a1a18' }}>{c.label}</td>
+                      <td style={{ padding: '7px 10px', color: '#1a1a18' }}>{fm(c.amount)}</td>
+                      <td style={{ padding: '7px 10px' }}>
+                        <span style={{ background: c.status === 'funded' ? '#EAF3DE' : '#FAEEDA', color: c.status === 'funded' ? '#27500A' : '#633806', padding: '2px 8px', borderRadius: 100, fontSize: 11, fontWeight: 500 }}>
+                          {c.status === 'funded' ? 'Funded' : 'Pending'}
                         </span>
-                      )}
+                      </td>
+                      <td style={{ padding: '7px 10px', color: '#6b6a63', fontSize: 11, lineHeight: 1.3 }}>{c.trigger || c.date}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ background: '#eceae3', borderTop: S.border }}>
+                    <td style={{ padding: '7px 10px', fontWeight: 500, color: '#1a1a18' }}>Total equity</td>
+                    <td style={{ padding: '7px 10px', fontWeight: 500, color: '#1a1a18' }}>{fm(totalEquity)}</td>
+                    <td colSpan={2} style={{ padding: '7px 10px', fontSize: 11, color: '#6b6a63' }}>{funded.length} of {(lpa.capital_contributions||[]).length} tranches funded · {fm(pendingEquity)} remaining</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <SectionLabel>Developer fee</SectionLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
+              <Kpi label="Dev fee total" value={fm(lpa.dev_fee_total)} />
+              <Kpi label="Paid to date" value={fm(lpa.dev_fee_paid)} />
+              <Kpi label="Deferred" value={fm(lpa.dev_fee_deferred)} sub="due by Dec 31 2039" warn />
+            </div>
+            <div style={{ height: 8, background: '#e5e3db', borderRadius: 4, overflow: 'hidden', marginBottom: 14 }}>
+              <div style={{ width: `${Math.round((lpa.dev_fee_paid/lpa.dev_fee_total)*100)}%`, height: '100%', background: '#378ADD', borderRadius: 4 }} />
+            </div>
+          </div>
+
+          <div>
+            <SectionLabel mt={0}>The 5 adjustors — what can reduce your equity</SectionLabel>
+
+            {[
+              {
+                name: '1. Downward Adjustor (§5.1(c)(i))',
+                severity: 'high',
+                formula: 'Certified Credit Decrease = ($38,085,441 − Certified Credits) × $0.8275',
+                trigger: 'Certified credits come in below $38,085,441 at cost cert',
+                impact: 'Reduces 2nd contribution first, then 3rd, then 4th. If it exceeds all unfunded contributions, SLP pays AHF the excess within 75 days.',
+                live: 'Monitor qualified basis at each building — any reduction in eligible basis reduces credits.',
+              },
+              {
+                name: '2. Late Delivery Adjustment (§5.1(c)(iii))',
+                severity: 'critical',
+                formula: 'Component A: If FY2026 Actual Credits < $2,317,826 → shortfall × $0.60
+Component B: Each subsequent year with no Actual Credits → ($3,808,544 − Actual Credits) × $0.60',
+                trigger: 'Buildings not generating sufficient credits in first credit year (2026)',
+                impact: 'Stacks with Downward Adjustor. Reduces 4th contribution first then works backward. SLP pays any excess within 75 days.',
+                live: '⚠ Most live risk. Have accountants model FY2026 Actual Credits now based on current PIS dates.',
+              },
+              {
+                name: '3. Downward Bonus Depreciation Adjustor (§5.1(c)(vi))',
+                severity: 'critical',
+                formula: 'Amount = AHF-determined amount to maintain its closing rate of return (NO formula — AHF sets it unilaterally)',
+                trigger: '2 bldgs not PIS in 2025 (40% bonus) AND/OR 8 bldgs not PIS in 2026 (20% bonus)',
+                impact: 'Reduces 4th contribution. If it exceeds the 4th contribution, SLP pays the excess within 75 days.',
+                live: 'Confirm with accountants whether 2 buildings placed in service in 2025 actually qualify.',
+              },
+              {
+                name: '4. Section 5.4 Withholding',
+                severity: 'high',
+                formula: 'No formula — AHF withholds any otherwise-due contribution at its sole election',
+                trigger: 'GP/SLP not in substantial compliance, FHA loan in default, or foreclosure commenced',
+                impact: 'Any contribution can be withheld entirely until default is cured. Exception: if the contribution itself cures the default, AHF must fund it.',
+                live: 'Keep HUD loan current. No defaults. No open compliance violations.',
+              },
+              {
+                name: '5. Projected Late Delivery / Credit Decrease Withholding (§5.1(c)(v))',
+                severity: 'high',
+                formula: 'AHF may withhold any otherwise-due contribution in amount it determines in good faith',
+                trigger: 'AHF projects (based on draft cost cert or accountant estimates) that adjustors will exceed the 4th contribution',
+                impact: 'Pre-8609 withholding reserve. Released on 4th contribution date if adjustors do not materialize.',
+                live: 'Early accountant engagement reduces this risk — give AHF clean cost cert data as early as possible.',
+              },
+            ].map((adj, i) => (
+              <div key={i} style={{ padding: '10px 12px', borderRadius: S.radius, background: sevbg[adj.severity], border: `0.5px solid ${adj.severity === 'critical' ? '#F09595' : '#FAC775'}`, marginBottom: 8 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: '#1a1a18', marginBottom: 5 }}>{adj.name}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '3px 8px', fontSize: 11, lineHeight: 1.45 }}>
+                  <span style={{ color: '#8f8e87', fontWeight: 500 }}>Formula:</span><span style={{ color: '#1a1a18', whiteSpace: 'pre-line' }}>{adj.formula}</span>
+                  <span style={{ color: '#8f8e87', fontWeight: 500 }}>Trigger:</span><span style={{ color: '#1a1a18' }}>{adj.trigger}</span>
+                  <span style={{ color: '#8f8e87', fontWeight: 500 }}>Impact:</span><span style={{ color: '#1a1a18' }}>{adj.impact}</span>
+                  <span style={{ color: sevcl[adj.severity], fontWeight: 500 }}>Action:</span><span style={{ color: sevcl[adj.severity], fontWeight: 500 }}>{adj.live}</span>
+                </div>
+              </div>
+            ))}
+
+            <div style={{ padding: '8px 12px', background: '#EAF3DE', border: '0.5px solid #C0DD97', borderRadius: S.radius, marginTop: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#27500A', marginBottom: 3 }}>Upward Adjustor (§5.1(c)(ii)) — works in your favor</div>
+              <div style={{ fontSize: 11, color: '#27500A', lineHeight: 1.45 }}>
+                If Certified Credits exceed $38,085,441, the 4th contribution increases by (Certified Credit Increase × $0.8275) minus any Late Delivery Adjustment. Increase used first for development costs, then as Cost Savings.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── GUARANTEES ── */}
+      {subTab === 'guarantees' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <SectionLabel mt={0}>SLP guarantees (Mark Gregg / Streamline)</SectionLabel>
+            {[
+              { name: 'Construction guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Completion by earliest of Dec 31 2026, Project Documents date, or date required for Tax Credits. SLP pays ALL excess development costs from own funds. DDF Election available with AHF consent.' },
+              { name: 'Operating deficit guaranty', cap: odgCap, obligor: 'SLP', status: 'active', detail: `Commences at Stabilization, runs 5 years (Initial Period). ODG cap: ${fm(odgCap)}. Note: Real Estate Tax Exemption Guaranty is NOT subject to the ODG cap. If new project built within 1-mile radius, ODG period extends to 6 years after that project's last CO.` },
+              { name: 'Stabilization guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Stabilization by Jun 30, 2027. SLP funds First Priority Loan payments from own funds if needed to achieve Stabilization. All such payments are Excess Development Costs.' },
+              { name: 'Tax credit compliance guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Pay AHF for any Tax Credit Shortfall including: shortfall amount, IRS penalties/interest, gross-up for AHF's tax liability on receipt, legal/accounting costs. Due 75 days after Tax Credit Loss Event.' },
+              { name: 'Real estate tax exemption guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'UNCAPPED — no ODG Cap applies. If property tax exemption is lost (SMHA/PFC structure), SLP funds via Operating Deficit Loan with no cap. Also a Conversion Event.' },
+              { name: 'Bond / First Priority Loan guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Bonds of $38M must be issued and remain outstanding until Apartment Complex placed in service. Bonds paid in full by Jul 1, 2028. No redemption/refunding/remarketing without AHF consent.' },
+              { name: 'Misconduct indemnity', cap: null, obligor: 'SLP & GP', status: 'active', detail: 'Breach of fiduciary duty, intentional misstatement, gross negligence, willful breach, intentional misconduct, bad faith, misappropriation of funds, or fraud by GP, SLP, Developer, PM, or Contractor.' },
+              { name: 'Corporate Transparency Act', cap: null, obligor: 'SLP', status: 'active', detail: 'SLP indemnifies Partnership and AHF for any failure by Partnership, SLP, or Affiliates to file required beneficial ownership reports with FinCEN.' },
+            ].map((g, i) => (
+              <div key={i} style={{ padding: '10px 12px', borderRadius: S.radius, background: '#eceae3', border: S.border, marginBottom: 7 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#1a1a18' }}>{g.name}</span>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, color: '#6b6a63' }}>{g.obligor}</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: g.cap ? '#6b6a63' : '#791F1F' }}>{g.cap ? `Cap: ${fm(g.cap)}` : 'No cap'}</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 11, color: '#6b6a63', lineHeight: 1.5 }}>{g.detail}</div>
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <SectionLabel mt={0}>Property manager removal triggers</SectionLabel>
+            <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
+              {[
+                { trigger: 'Investor LP Loans outstanding > $50,000', note: 'Made during PM's engagement period' },
+                { trigger: 'Tax credit shortfall attributable to PM noncompliance', note: 'Not reimbursed by SLP' },
+                { trigger: 'Occupancy < 87% for any consecutive 3-month period after Stabilization', note: 'Key ongoing threshold' },
+                { trigger: 'Failing TDHCA inspection', note: '' },
+                { trigger: 'Code violation outstanding > 90 days (or allotted correction period)', note: '' },
+                { trigger: 'PM materially breaches Management Agreement', note: '' },
+                { trigger: 'PM becomes Bankrupt or defaults under Management Agreement', note: '' },
+                { trigger: 'PM is Affiliate of GP/SLP and a Conversion Event has occurred', note: '' },
+              ].map((t, i) => (
+                <div key={i} style={{ padding: '7px 12px', borderBottom: i < 7 ? S.border : 'none', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#BA7517', flexShrink: 0, marginTop: 4 }} />
+                  <div>
+                    <div style={{ fontSize: 12, color: '#1a1a18' }}>{t.trigger}</div>
+                    {t.note && <div style={{ fontSize: 11, color: '#8f8e87', marginTop: 1 }}>{t.note}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <SectionLabel>AHF approval required (SLP cannot act without)</SectionLabel>
+            <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden' }}>
+              {[
+                'Any sale or disposition of Apartment Complex',
+                'Any amendment to Bond Documents or First Priority Loan Documents',
+                'Bond redemption, refunding, remarketing or reissuance',
+                'Replacing GNMA as credit enhancer',
+                'Borrowing more than $10,000 on general credit of Partnership',
+                'Capital improvements > $10,000 in single fiscal year (post-Stabilization)',
+                'Settling any claim or litigation related to payment/performance bonds',
+                'Change of name or principal place of business (30 days prior notice)',
+                'Use of Affiliate as Property Manager',
+                'Any election or decision under IRS Audit Rules',
+              ].map((item, i) => (
+                <div key={i} style={{ padding: '6px 12px', borderBottom: i < 9 ? S.border : 'none', fontSize: 11, color: '#6b6a63', display: 'flex', alignItems: 'flex-start', gap: 7 }}>
+                  <span style={{ color: '#378ADD', flexShrink: 0, marginTop: 1 }}>•</span>{item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── KEY DATES ── */}
+      {subTab === 'dates' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <SectionLabel mt={0}>Hard deadlines — repurchase put triggers</SectionLabel>
+            {[
+              { label: 'All buildings placed in service', date: 'Dec 31, 2026', status: 'pending', risk: 'Repurchase Event if missed — AHF can force buyback at all capital contributed + Prime+2% or 10% interest', severity: 'critical' },
+              { label: 'Stabilization', date: 'Jun 30, 2027', status: 'pending', risk: 'Repurchase Event if missed. SLP must buy back AHF interest within 60 days of AHF exercising the Repurchase Put.', severity: 'critical' },
+              { label: '8609s issued (first credit year)', date: 'Dec 31, 2026', status: 'pending', risk: 'Must allow Partnership to claim Tax Credits for first Credit Period year. Failure is a Repurchase Event.', severity: 'critical' },
+              { label: 'Extended Use Agreement recorded', date: 'Before end of first credit year', status: 'pending', risk: 'Must be in effect before end of first year of Credit Period. Failure is a Repurchase Event.', severity: 'critical' },
+              { label: 'Tax-exempt bond financing (50% test)', date: 'Ongoing', status: 'pending', risk: 'At least 50% of aggregate basis of Apartment Complex and Land must be financed by volume-cap tax-exempt bonds. Failure is a Repurchase Event.', severity: 'critical' },
+              { label: 'Bonds outstanding until PIS', date: 'Ongoing', status: 'pending', risk: 'All Bonds must remain outstanding until Apartment Complex placed in service. Premature retirement is a Repurchase Event.', severity: 'critical' },
+              { label: 'Bonds paid in full', date: 'Jul 1, 2028', status: 'pending', risk: '$38M bonds must be fully redeemed by this date.', severity: 'high' },
+            ].map((d, i) => {
+              const days = daysUntil(d.date)
+              const urgent = days !== null && days < 180
+              const critical = days !== null && days < 60
+              return (
+                <div key={i} style={{ padding: '9px 12px', borderRadius: S.radius, background: sevbg[d.severity], border: `0.5px solid ${d.severity === 'critical' ? '#F09595' : '#FAC775'}`, marginBottom: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#1a1a18' }}>{d.label}</span>
+                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                      {days !== null && <span style={{ fontSize: 11, color: critical ? '#a32d2d' : urgent ? '#633806' : '#8f8e87', fontWeight: critical ? 600 : 400 }}>{days > 0 ? `${days}d` : `${Math.abs(days)}d ago`}</span>}
                       <span style={{ fontSize: 11, color: '#6b6a63' }}>{d.date}</span>
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: d.status === 'at-risk' ? '#791F1F' : '#6b6a63', marginTop: 2, lineHeight: 1.4 }}>{d.risk}</div>
+                  <div style={{ fontSize: 11, color: sevcl[d.severity], lineHeight: 1.4 }}>{d.risk}</div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div>
+            <SectionLabel mt={0}>Equity milestones</SectionLabel>
+            {(lpa.key_dates || []).filter(d => d.label.includes('contribution') || d.label.includes('capital')).concat(
+              (lpa.key_dates || []).filter(d => !d.label.includes('contribution') && !d.label.includes('capital'))
+            ).map((d, i) => {
+              const days = daysUntil(d.date)
+              const urgent = days !== null && days < 180 && d.status !== 'complete'
+              const critical = days !== null && days < 60 && d.status !== 'complete'
+              const bg = d.status === 'complete' ? '#EAF3DE' : d.status === 'at-risk' ? '#FCEBEB' : urgent ? '#FAEEDA' : '#eceae3'
+              const dot = d.status === 'complete' ? '#639922' : d.status === 'at-risk' ? '#E24B4A' : urgent ? '#BA7517' : '#c8c6bc'
+              return (
+                <div key={i} style={{ padding: '8px 10px', borderRadius: S.radius, background: bg, border: S.border, marginBottom: 5 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0, marginTop: 3 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>{d.label}</span>
+                        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                          {days !== null && d.status !== 'complete' && <span style={{ fontSize: 11, color: critical ? '#a32d2d' : urgent ? '#633806' : '#8f8e87' }}>{days > 0 ? `${days}d` : `${Math.abs(days)}d ago`}</span>}
+                          <span style={{ fontSize: 11, color: '#6b6a63' }}>{d.date}</span>
+                        </div>
+                      </div>
+                      {d.risk && <div style={{ fontSize: 11, color: d.status === 'at-risk' ? '#791F1F' : '#6b6a63', marginTop: 2, lineHeight: 1.4 }}>{d.risk}</div>}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── REPORTING ── */}
+      {subTab === 'reporting' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <SectionLabel mt={0}>Periodic reporting obligations (§12.5)</SectionLabel>
+            <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
+              <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+                <thead><tr style={{ background: '#eceae3' }}>
+                  {['Requirement', 'Due', 'Next due', 'Penalty'].map(h => (
+                    <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 500, color: '#6b6a63', borderBottom: S.border }}>{h}</th>
+                  ))}
+                </tr></thead>
+                <tbody>{(lpa.reporting || []).map((r, i) => (
+                  <tr key={i} style={{ borderBottom: S.border, background: i % 2 === 0 ? '#fff' : '#fafaf8' }}>
+                    <td style={{ padding: '7px 10px', color: '#1a1a18', lineHeight: 1.4 }}>{r.what}</td>
+                    <td style={{ padding: '7px 10px', color: '#6b6a63' }}>{r.due}</td>
+                    <td style={{ padding: '7px 10px', fontWeight: 500, color: '#1a1a18' }}>{r.nextDue}</td>
+                    <td style={{ padding: '7px 10px', color: r.penalty ? '#791F1F' : '#8f8e87', fontWeight: r.penalty ? 500 : 400 }}>{r.penalty || '—'}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+
+            <SectionLabel>Year-end package (due 75 days after Dec 31 = Mar 16)</SectionLabel>
+            {[
+              'Certification: First Priority Loan payments current',
+              'Certification: Taxes and insurance payments current',
+              'Certification: No material default under Project Documents',
+              'Certification: No building/health/fire code violations (or description if any)',
+              'Description of all related-party transactions during the year',
+              'Net Cash Flow statement',
+              'Copy of annual Agency report on low-income housing status',
+            ].map((item, i) => (
+              <div key={i} style={{ padding: '5px 10px', borderBottom: i < 6 ? S.border : 'none', fontSize: 11, color: '#6b6a63', display: 'flex', gap: 7, alignItems: 'flex-start' }}>
+                <span style={{ color: '#378ADD', flexShrink: 0 }}>•</span>{item}
+              </div>
+            ))}
+          </div>
+
+          <div>
+            <SectionLabel mt={0}>Monthly report contents (§12.5(b)(ii)) — due 35 days after month end</SectionLabel>
+            <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
+              {[
+                ['Balance sheet (unaudited)', 'Required every month'],
+                ['Income & expense statement', 'Month and period-to-date'],
+                ['Cash flow statement', 'Month and period-to-date'],
+                ['Rent roll', 'Certified by Property Manager AND SLP'],
+                ['Development budget update', 'Until Stabilization only — actual vs original with all variances'],
+                ['Other material partnership information', 'Any material operational items'],
+              ].map(([item, note], i) => (
+                <div key={i} style={{ padding: '7px 12px', borderBottom: i < 5 ? S.border : 'none' }}>
+                  <div style={{ fontSize: 12, color: '#1a1a18', fontWeight: 500 }}>{item}</div>
+                  <div style={{ fontSize: 11, color: '#8f8e87', marginTop: 1 }}>{note}</div>
+                </div>
+              ))}
+            </div>
+
+            <SectionLabel>Immediate notice requirements (within 15 days)</SectionLabel>
+            {[
+              'Any default under Project Documents or payment of mortgage, taxes, interest',
+              'Any reserve reduced or terminated for purposes different from those intended',
+              'Receipt of any notice of material fact that may affect distributions or adversely affect Partnership',
+              'Default by First Priority Lender',
+              'Commencement of foreclosure proceedings',
+            ].map((item, i) => (
+              <div key={i} style={{ padding: '6px 10px', borderBottom: i < 4 ? S.border : 'none', fontSize: 11, color: '#6b6a63', display: 'flex', gap: 7, alignItems: 'flex-start' }}>
+                <span style={{ color: '#E24B4A', flexShrink: 0, fontWeight: 700 }}>!</span>{item}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── WATERFALL & CONVERSION ── */}
+      {subTab === 'waterfall' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <SectionLabel mt={0}>Cash flow waterfall — Net Cash Flow (§9.1)</SectionLabel>
+            <div style={{ fontSize: 11, color: '#8f8e87', marginBottom: 10 }}>No distributions before Stabilization. Any unauthorized distribution must be returned with 20% interest.</div>
+            {(lpa.waterfall || []).map((w, i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, padding: '9px 12px', background: i % 2 === 0 ? '#eceae3' : '#f5f4f0', borderRadius: S.radius, border: S.border, marginBottom: 5 }}>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', background: '#1a1a18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff' }}>{w.priority}</span>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 12, color: '#1a1a18', lineHeight: 1.4 }}>{w.label}</span>
                 </div>
               </div>
-            </div>
-          )
-        })}
-      </div>
-
-      <SectionLabel>Reporting obligations</SectionLabel>
-      <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 14 }}>
-        <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-          <thead><tr style={{ background: '#eceae3' }}>
-            {['Requirement', 'Due', 'Next due', 'Penalty'].map(h => (
-              <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 500, color: '#6b6a63', borderBottom: S.border }}>{h}</th>
             ))}
-          </tr></thead>
-          <tbody>{(lpa.reporting || []).map((r, i) => (
-            <tr key={i} style={{ borderBottom: S.border }}>
-              <td style={{ padding: '6px 10px', color: '#1a1a18' }}>{r.what}</td>
-              <td style={{ padding: '6px 10px', color: '#6b6a63' }}>{r.due}</td>
-              <td style={{ padding: '6px 10px', fontWeight: 500, color: '#1a1a18' }}>{r.nextDue}</td>
-              <td style={{ padding: '6px 10px', color: r.penalty ? '#791F1F' : '#8f8e87' }}>{r.penalty || '—'}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-      </div>
 
-      <SectionLabel>Guarantees (all on SLP)</SectionLabel>
-      {(lpa.guarantees || []).map((g, i) => (
-        <div key={i} style={{ padding: '8px 10px', borderRadius: S.radius, background: '#eceae3', border: S.border, marginBottom: 6 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 2 }}>
-            <span style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>{g.name}</span>
-            <span style={{ fontSize: 11, color: g.cap ? '#6b6a63' : '#791F1F', fontWeight: g.cap ? 400 : 500, flexShrink: 0 }}>
-              {g.cap ? `Cap: ${fm(g.cap)}` : 'No cap'}
-            </span>
+            <SectionLabel>Asset management fee</SectionLabel>
+            <div style={{ padding: '10px 12px', background: '#FAEEDA', border: '0.5px solid #FAC775', borderRadius: S.radius, fontSize: 11, color: '#633806', lineHeight: 1.5 }}>
+              $7,500/year starting when rental revenue is first received. Increases 3% per year. If unpaid, accrues at 12% interest. Already accruing — check balance against operating cash.
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: '#6b6a63', lineHeight: 1.4 }}>{g.desc}</div>
-        </div>
-      ))}
 
-      <SectionLabel>Cash flow waterfall</SectionLabel>
-      {(lpa.waterfall || []).map((w, i) => (
-        <div key={i} style={{ display: 'flex', gap: 10, padding: '7px 10px', background: '#eceae3', borderRadius: S.radius, border: S.border, marginBottom: 4 }}>
-          <span style={{ fontSize: 12, fontWeight: 500, color: '#8f8e87', width: 18, textAlign: 'right', flexShrink: 0 }}>{w.priority}.</span>
-          <span style={{ fontSize: 12, color: '#6b6a63', lineHeight: 1.4 }}>{w.label}</span>
-        </div>
-      ))}
+          <div>
+            <SectionLabel mt={0}>Conversion events — AHF can convert GP/SLP to passive LP</SectionLabel>
+            <div style={{ fontSize: 11, color: '#8f8e87', marginBottom: 10 }}>After conversion, AHF selects Substitute GP/SLP. Full removal if uncured within 90 days. Guarantees remain in effect even after removal.</div>
+            {(lpa.conversion_triggers || []).map((c, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '7px 10px', borderRadius: S.radius, background: sevbg[c.severity], marginBottom: 4 }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: sevcl[c.severity], flexShrink: 0, marginTop: 4 }} />
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 11, color: sevcl[c.severity] }}>{c.trigger}</span>
+                </div>
+                <span style={{ fontSize: 10, color: sevcl[c.severity], fontWeight: 600, flexShrink: 0 }}>{c.severity}</span>
+              </div>
+            ))}
 
-      <SectionLabel>Conversion triggers</SectionLabel>
-      {(lpa.conversion_triggers || []).map((c, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: S.radius, background: sevbg[c.severity] || '#FAEEDA', marginBottom: 3 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: sevcl[c.severity] || '#633806', flexShrink: 0 }} />
-          <span style={{ fontSize: 11, color: sevcl[c.severity], flex: 1 }}>{c.trigger}</span>
-          <span style={{ fontSize: 10, color: sevcl[c.severity], fontWeight: 500, flexShrink: 0 }}>{c.severity}</span>
+            <SectionLabel>NCF % dilution — permanent and irreversible</SectionLabel>
+            <div style={{ padding: '10px 12px', background: '#FCEBEB', border: '0.5px solid #F09595', borderRadius: S.radius, fontSize: 11, color: '#791F1F', lineHeight: 1.5 }}>
+              NCF Percentage starts at 85%. If Investor LP Loans EVER exceed $50,000 outstanding, the NCF % permanently drops to a formula based on the Greatest Excess Investor LP Loan Amount. It CANNOT recover. This directly reduces your incentive management fee and cash distributions forever. Never let LP loans exceed $50K.
+            </div>
+
+            <SectionLabel>Repurchase Put terms (§5.6)</SectionLabel>
+            <div style={{ padding: '10px 12px', background: '#FCEBEB', border: '0.5px solid #F09595', borderRadius: S.radius, fontSize: 11, color: '#791F1F', lineHeight: 1.5, marginTop: 4 }}>
+              AHF gives notice → closing 60 days later → SLP pays all capital contributed to Partnership + interest at greater of Prime Rate + 2% per annum or 10% per annum → AHF withdraws. SLP also releases all letters of credit, indemnifies AHF for all losses. Current capital contributions funded: {fm(totalFunded)}.
+            </div>
+          </div>
         </div>
-      ))}
+      )}
     </div>
   )
 }
