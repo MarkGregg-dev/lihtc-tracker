@@ -60,7 +60,12 @@ export function DocsTab({ project }) {
     if (!doc.storage_path) return
     try {
       const url = await getDocumentUrl(doc.storage_path)
-      window.open(url, '_blank')
+      const isExcel = doc.file_name && (doc.file_name.endsWith('.xlsx') || doc.file_name.endsWith('.xls'))
+      if (isExcel) {
+        window.open('https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(url), '_blank')
+      } else {
+        window.open(url, '_blank')
+      }
     } catch (err) {
       alert('Could not open document: ' + err.message)
     }
