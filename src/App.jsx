@@ -496,6 +496,78 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
   )
 }
 
+// ── Edit project modal ───────────────────────────────────────────────
+function EditModal({ project, onSave, onClose }) {
+  const [form, setForm] = useState({
+    name: project.name || '',
+    city: project.city || '',
+    stage: project.stage || 'Construction',
+    units: project.units || '',
+    alert: project.alert || 'green',
+    alert_msg: project.alert_msg || '',
+    tc_year: project.tc_year || '',
+    investor: project.investor || '',
+    lender: project.lender || '',
+    pm_company: project.pm_company || '',
+    notes: project.notes || '',
+  })
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  async function handleSave() {
+    try {
+      await upsertProject({ ...project, ...form, units: parseInt(form.units) || 0, tc_year: parseInt(form.tc_year) || null })
+      onSave()
+    } catch (err) { alert('Save failed: ' + err.message) }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ background: '#fff', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.15)' }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: '#1a1a18', marginBottom: 16 }}>Edit — {project.name}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+          {[['Project name','name','text'],['City, state','city','text'],['Total units','units','number'],['Tax credit year','tc_year','number'],['Equity investor','investor','text'],['Lender','lender','text'],['PM company','pm_company','text']].map(([label, key, type]) => (
+            <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <label style={{ fontSize: 11, color: '#6b6a63' }}>{label}</label>
+              <input type={type} value={form[key]} onChange={e => set(key, e.target.value)}
+                style={{ fontSize: 13, padding: '6px 9px', border: '0.5px solid #c8c6bc', borderRadius: 7 }} />
+            </div>
+          ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <label style={{ fontSize: 11, color: '#6b6a63' }}>Stage</label>
+            <select value={form.stage} onChange={e => set('stage', e.target.value)}
+              style={{ fontSize: 13, padding: '6px 9px', border: '0.5px solid #c8c6bc', borderRadius: 7 }}>
+              {['Pre-development','Construction','Lease-up','Stabilized'].map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <label style={{ fontSize: 11, color: '#6b6a63' }}>Alert status</label>
+            <select value={form.alert} onChange={e => set('alert', e.target.value)}
+              style={{ fontSize: 13, padding: '6px 9px', border: '0.5px solid #c8c6bc', borderRadius: 7 }}>
+              <option value="green">Green</option>
+              <option value="amber">Amber</option>
+              <option value="red">Red</option>
+            </select>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 10 }}>
+          <label style={{ fontSize: 11, color: '#6b6a63' }}>Alert message</label>
+          <input value={form.alert_msg} onChange={e => set('alert_msg', e.target.value)}
+            style={{ fontSize: 13, padding: '6px 9px', border: '0.5px solid #c8c6bc', borderRadius: 7 }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 16 }}>
+          <label style={{ fontSize: 11, color: '#6b6a63' }}>Notes</label>
+          <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={3}
+            style={{ fontSize: 13, padding: '6px 9px', border: '0.5px solid #c8c6bc', borderRadius: 7, resize: 'vertical' }} />
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={handleSave} style={{ padding: '7px 16px', fontSize: 13, fontWeight: 500, background: '#1a1a18', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>Save changes</button>
+          <button onClick={onClose} style={{ padding: '7px 16px', fontSize: 13, border: '0.5px solid #c8c6bc', borderRadius: 8, background: '#fff', cursor: 'pointer' }}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main App ──────────────────────────────────────────────────────────
 export default function App() {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('lihtc-auth') === 'true')
@@ -624,6 +696,9 @@ export default function App() {
         {avgOcc !== null && <Kpi label="Avg occupancy" value={`${avgOcc}%`} sub={`${leasePrj.length} projects`} warn={avgOcc < 80} />}
         {flags > 0 && <Kpi label="Flagged" value={flags} sub="need attention" warn />}
       </div>
+
+      {/* Edit modal */}
+      {editing && <EditModal project={editing} onSave={() => { setEditing(null); load() }} onClose={() => setEditing(null)} />}
 
       {/* Project list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
