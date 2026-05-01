@@ -18,7 +18,13 @@ export function DocsTab({ project }) {
   const [noteVal, setNoteVal] = useState('')
   const [localDocs, setLocalDocs] = useState(docs)
   const [addOpen, setAddOpen] = useState(false)
-  const [collapsed, setCollapsed] = useState({})
+  const [collapsed, setCollapsed] = useState(() => {
+    // Start all folders collapsed
+    const init = {}
+    const FOLDERS = ['A. Land Acquisition','B. Bond','C. HUD Transcript','D. Equity','E. Land and Lease','F. Construction','G. Opinions','H. Title Misc','Monthly Reports']
+    FOLDERS.forEach(f => { init[f] = true })
+    return init
+  })
   const toggleFolder = (folder) => setCollapsed(c => ({ ...c, [folder]: !c[folder] }))
   const [newMeta, setNewMeta] = useState({ name: '', folder: 'Monthly Reports', doc_type: 'pm-report', notes: '' })
   const fileRef = useRef()
