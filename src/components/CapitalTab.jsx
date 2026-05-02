@@ -93,13 +93,13 @@ const STAB_TARGET = 326
 const CURRENT_MONTHLY_DEFICIT = 23834
 const STAB_NOI = 22749
 
-function addMonths(n) {
-  const d = new Date('2026-04-22')
+function addMonths(n, fromDate) {
+  const d = new Date(fromDate || '2026-03-02')
   d.setMonth(d.getMonth() + Math.round(n))
   return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
 }
 
-function calcScenario(pace) {
+function calcScenario(pace, asOfDate) {
   const unitsNeeded = STAB_TARGET - CURRENT_OCC_UNITS
   const monthsToStab = unitsNeeded / pace
   let interestReserve = INTEREST_REMAINING
@@ -179,6 +179,14 @@ function EscrowLedger({ ledger, beginning, label }) {
 }
 
 export function CapitalTab({ project }) {
+  const asOfDate = dbData?.as_of_date || dbData?.last_draw_date || '2026-03-02' // Draw #20
+
+  function getMonthLabel(monthOffset, fromDate) {
+    const d = new Date(fromDate)
+    d.setMonth(d.getMonth() + monthOffset)
+    return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+  }
+
   const [activePace, setActivePace] = useState(22)
   const [showAllSoft, setShowAllSoft] = useState(false)
   const [dbData, setDbData] = useState(null)
@@ -215,10 +223,10 @@ export function CapitalTab({ project }) {
   const hardTotal = displayHardCosts.reduce((a, c) => a + c.amount, 0)
   const softTotal = displaySoftCosts.reduce((a, c) => a + c.amount, 0)
   const totalUsesRemaining = hardTotal + softTotal + INTEREST_REMAINING
-  const scenarios = [15, 22, 30].map(calcScenario)
+  const scenarios = [15, 22, 30].map(p => calcScenario(p, asOfDate))
   const activeScenario = scenarios.find(s => s.pace === activePace)
 
-  const interestExhaustDate = addMonths(MONTHS_INTEREST_LEFT)
+  const interestExhaustDate = addMonths(MONTHS_INTEREST_LEFT, asOfDate)
 
   return (
     <div>
@@ -440,7 +448,7 @@ export function CapitalTab({ project }) {
                         <div style={{ width: '90%', height: intH, background: '#378ADD', borderRadius: '2px 2px 0 0', marginBottom: 1 }} />
                       )}
                       <div style={{ width: '90%', height: noiH, background: m.noi < 0 ? '#E24B4A' : '#639922', borderRadius: m.interestShortfall > 0 ? '0' : '2px 2px 0 0' }} />
-                      <div style={{ fontSize: 7, color: '#8f8e87', marginTop: 1 }}>M{m.month}</div>
+                      <div style={{ fontSize: 7, color: '#8f8e87', marginTop: 1 }}>{getMonthLabel(m.month, asOfDate)}</div>
                     </div>
                   )
                 })}

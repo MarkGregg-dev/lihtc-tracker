@@ -96,6 +96,55 @@ function extractAllLineItems(rows) {
   return items
 }
 
+function extractEscrowLedger(rows, headerSearchTerm) {
+  // Find the ledger section by searching col C for the header term
+  let startRow = -1
+  for (let i = 0; i < rows.length; i++) {
+    const c2 = rows[i][2] ? String(rows[i][2]).toLowerCase() : ''
+    if (c2.includes(headerSearchTerm.toLowerCase())) {
+      startRow = i
+      break
+    }
+  }
+  if (startRow < 0) return { transactions: [], balance: 0, beginning: 0 }
+
+  const transactions = []
+  let balance = 0
+  let beginning = 0
+
+  for (let i = startRow; i < Math.min(startRow + 60, rows.length); i++) {
+    const row = rows[i]
+    // Beginning balance row
+    const c2 = row[2] ? String(row[2]).trim() : ''
+    if (c2.toLowerCase().includes('beginning balance')) {
+      beginning = parseFloat(row[7]) || 0
+      balance = beginning
+      continue
+    }
+    // Transaction rows — col D = description, col E = date, col F = description2, col G = amount, col H = balance
+    const desc = row[3] ? String(row[3]).trim() : ''
+    const amount = row[6]
+    const bal = row[7]
+    if (desc && amount != null && !isNaN(parseFloat(amount)) && parseFloat(amount) !== 0) {
+      const date = row[4]
+      let dateStr = ''
+      if (date instanceof Date) dateStr = date.toISOString().split('T')[0]
+      else if (date) dateStr = String(date).split('T')[0]
+      transactions.push({
+        desc,
+        date: dateStr,
+        amount: parseFloat(amount),
+        balance: parseFloat(bal) || 0,
+      })
+      if (bal != null && !isNaN(parseFloat(bal))) balance = parseFloat(bal)
+    }
+    // Stop at totals row
+    if (row[6] && String(row[6]).toLowerCase() === 'total') break
+  }
+
+  return { transactions, balance, beginning }
+}
+
 export function DrawParser({ projectId, onParsed }) {
   const [parsing, setParsing] = useState(false)
   const [result, setResult] = useState(null)
@@ -136,6 +185,7 @@ export function DrawParser({ projectId, onParsed }) {
 
       // Last draw
       const { lastNum: last_draw_num, lastDate: last_draw_date } = findLastDraw(rows)
+      // as_of_date = last draw date for projecting forward
 
       // Find escrow ledger balances — search for "Working Capital Escrow" section header
       let wcStart = 0, wcEnd = 0, coStart = 0, coEnd = 0
@@ -165,9 +215,20 @@ export function DrawParser({ projectId, onParsed }) {
         total_spent: total_spent || 0,
         last_draw_num,
         last_draw_date,
+        as_of_date: last_draw_date,
         line_items,
         updated_at: new Date().toISOString(),
       }
+
+      // Extract escrow ledgers
+      const wcLedger = extractEscrowLedger(rows, 'working capital escrow')
+      const coLedger = extractEscrowLedger(rows, 'change order escrow')
+
+      // Use ledger balances if found (more accurate than line item remaining)
+      if (wcLedger.balance > 0) parsed.wc_escrow = wcLedger.balance
+      if (coLedger.balance > 0) parsed.co_contingency = coLedger.balance
+      parsed.wc_ledger = wcLedger.transactions
+      parsed.co_ledger = coLedger.transactions
 
       // Save to Supabase
       const { error: dbErr } = await supabase
