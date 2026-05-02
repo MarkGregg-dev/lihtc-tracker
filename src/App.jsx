@@ -6,8 +6,6 @@ import { DocsTab } from './components/DocsTab'
 import { BinsTab } from './components/BinsTab'
 import { LeaseUpTab } from './components/LeaseUpTab'
 import { SiteMapTab } from './components/SiteMapTab'
-import { CapitalTab } from './components/CapitalTab'
-import { DrawParser } from './components/DrawParser'
 
 // ── Project logos ────────────────────────────────────────────────────
 const PROJECT_LOGOS = {
@@ -137,7 +135,7 @@ function CapitalSufficiency({ d, leasing }) {
                 {m.noi < 0 ? `(${fm(Math.abs(m.noi))})` : fm(m.noi)}
               </div>
               <div style={{ width: '80%', height: h, background: m.noi < 0 ? '#E24B4A' : '#639922', borderRadius: 2 }} />
-              <div style={{ fontSize: 8, color: '#8f8e87' }}>{(() => { const d = new Date('2026-03-02'); d.setMonth(d.getMonth() + m.month); return d.toLocaleDateString('en-US', {month:'short', year:'2-digit'}) })()}</div>
+              <div style={{ fontSize: 8, color: '#8f8e87' }}>M{m.month}</div>
             </div>
           )
         })}
@@ -522,7 +520,8 @@ function LpaTab({ lpa }) {
               {
                 name: '2. Late Delivery Adjustment (§5.1(c)(iii))',
                 severity: 'critical',
-formula: 'Component A: FY2026 Actual Credits < $2,317,826, shortfall x $0.60. Component B: Subsequent years no Actual Credits, ($3,808,544 - Actual Credits) x $0.60',
+                formula: 'Component A: If FY2026 Actual Credits < $2,317,826, shortfall x $0.60. Component B: Each subsequent year with no Actual Credits, ($3,808,544 - Actual Credits) x $0.60',
+                trigger: 'Buildings not generating sufficient credits in first credit year (2026)',
                 impact: 'Stacks with Downward Adjustor. Reduces 4th contribution first then works backward. SLP pays any excess within 75 days.',
                 live: '⚠ Most live risk. Have accountants model FY2026 Actual Credits now based on current PIS dates.',
               },
@@ -581,6 +580,7 @@ formula: 'Component A: FY2026 Actual Credits < $2,317,826, shortfall x $0.60. Co
               { name: 'Construction guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Completion by earliest of Dec 31 2026, Project Documents date, or date required for Tax Credits. SLP pays ALL excess development costs from own funds. DDF Election available with AHF consent.' },
               { name: 'Operating deficit guaranty', cap: odgCap, obligor: 'SLP', status: 'active', detail: `Commences at Stabilization, runs 5 years (Initial Period). ODG cap: ${fm(odgCap)}. Note: Real Estate Tax Exemption Guaranty is NOT subject to the ODG cap. If new project built within 1-mile radius, ODG period extends to 6 years after that project's last CO.` },
               { name: 'Stabilization guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Stabilization by Jun 30, 2027. SLP funds First Priority Loan payments from own funds if needed to achieve Stabilization. All such payments are Excess Development Costs.' },
+              { name: 'Tax credit compliance guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Pay AHF for any Tax Credit Shortfall including: shortfall amount, IRS penalties/interest, gross-up for AHF's tax liability on receipt, legal/accounting costs. Due 75 days after Tax Credit Loss Event.' },
               { name: 'Real estate tax exemption guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'UNCAPPED — no ODG Cap applies. If property tax exemption is lost (SMHA/PFC structure), SLP funds via Operating Deficit Loan with no cap. Also a Conversion Event.' },
               { name: 'Bond / First Priority Loan guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Bonds of $38M must be issued and remain outstanding until Apartment Complex placed in service. Bonds paid in full by Jul 1, 2028. No redemption/refunding/remarketing without AHF consent.' },
               { name: 'Misconduct indemnity', cap: null, obligor: 'SLP & GP', status: 'active', detail: 'Breach of fiduciary duty, intentional misstatement, gross negligence, willful breach, intentional misconduct, bad faith, misappropriation of funds, or fraud by GP, SLP, Developer, PM, or Contractor.' },
@@ -603,7 +603,7 @@ formula: 'Component A: FY2026 Actual Credits < $2,317,826, shortfall x $0.60. Co
             <SectionLabel mt={0}>Property manager removal triggers</SectionLabel>
             <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
               {[
-                { trigger: 'Investor LP Loans outstanding > $50,000', note: 'Made during PM engagement period' },
+                { trigger: 'Investor LP Loans outstanding > $50,000', note: 'Made during PM's engagement period' },
                 { trigger: 'Tax credit shortfall attributable to PM noncompliance', note: 'Not reimbursed by SLP' },
                 { trigger: 'Occupancy < 87% for any consecutive 3-month period after Stabilization', note: 'Key ongoing threshold' },
                 { trigger: 'Failing TDHCA inspection', note: '' },
@@ -850,7 +850,6 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
     { id: 'bins', label: 'BINs & buildings' },
     { id: 'leaseup', label: 'Lease-up intel' },
     { id: 'sitemap', label: 'Site map' },
-    { id: 'capital', label: 'Capital sufficiency' },
     { id: 'docs', label: 'Documents' },
     { id: 'info', label: 'Info' },
   ]
@@ -905,7 +904,6 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
           {tab === 'bins' && <BinsTab project={project} />}
           {tab === 'leaseup' && <LeaseUpTab project={project} />}
           {tab === 'sitemap' && <SiteMapTab project={project} />}
-          {tab === 'capital' && <CapitalTab project={project} />}
           {tab === 'docs' && <DocsTab project={project} />}
           {tab === 'info' && (
             <div>
@@ -1042,6 +1040,94 @@ function EditModal({ project, onSave, onClose }) {
   )
 }
 
+// ── Risk alert bar ───────────────────────────────────────────────────
+function RiskAlertBar({ projects }) {
+  const alerts = []
+
+  for (const p of projects) {
+    const draw = p.draw_data?.[0] || p.draw_data || null
+    const leasing = p.leasing_snapshots?.[0] || null
+
+    // ── Alert 1: Interest reserve runway ──
+    const MONTHLY_BOND_INTEREST = 117167
+    const interestRemaining = draw?.interest_remaining ?? 287384
+    const monthsLeft = interestRemaining / MONTHLY_BOND_INTEREST
+    const interestColor = monthsLeft <= 1 ? 'critical' : monthsLeft <= 2 ? 'high' : monthsLeft <= 3 ? 'warn' : null
+    if (interestColor) {
+      const exhaustDate = (() => {
+        const d = new Date('2026-03-02')
+        d.setMonth(d.getMonth() + Math.round(monthsLeft))
+        return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      })()
+      alerts.push({
+        project: p.name,
+        severity: interestColor,
+        icon: '💰',
+        title: 'Interest reserve',
+        detail: `${monthsLeft.toFixed(1)} months remaining — exhausted ${exhaustDate}`,
+      })
+    }
+
+    // ── Alert 2: Lease-up pace vs required ──
+    if (p.stage === 'Lease-up' && leasing) {
+      const occupied = leasing.occupied || 0
+      const stabTarget = Math.floor((leasing.total_units || 363) * 0.9)
+      const unitsNeeded = stabTarget - occupied
+      const deadline = new Date('2027-06-30')
+      const today = new Date()
+      const monthsToDeadline = (deadline - today) / (1000 * 60 * 60 * 24 * 30.5)
+      const requiredPace = unitsNeeded / monthsToDeadline
+      // Get 30-day absorption from leasing data if available, else use known value
+      const currentPace = leasing.monthly_absorption || 22
+      const paceRatio = currentPace / requiredPace
+      const paceColor = paceRatio < 0.85 ? 'critical' : paceRatio < 1.0 ? 'high' : paceRatio < 1.15 ? 'warn' : null
+      if (paceColor) {
+        alerts.push({
+          project: p.name,
+          severity: paceColor,
+          icon: '🏠',
+          title: 'Lease-up pace',
+          detail: `${currentPace}/mo actual vs ${requiredPace.toFixed(0)}/mo needed for Jun 2027 — ${paceRatio >= 1 ? 'on track' : `${((1 - paceRatio) * 100).toFixed(0)}% below target`}`,
+        })
+      } else if (paceRatio >= 1.15) {
+        alerts.push({
+          project: p.name,
+          severity: 'ok',
+          icon: '🏠',
+          title: 'Lease-up pace',
+          detail: `${currentPace}/mo actual vs ${requiredPace.toFixed(0)}/mo needed — on track for Jun 2027`,
+        })
+      }
+    }
+  }
+
+  if (alerts.length === 0) return null
+
+  const COLORS = {
+    critical: { bg: '#FCEBEB', border: '#F09595', dot: '#E24B4A', text: '#791F1F', label: 'CRITICAL' },
+    high:     { bg: '#FEF3E2', border: '#FAC775', dot: '#BA7517', text: '#633806', label: 'HIGH' },
+    warn:     { bg: '#FAEEDA', border: '#FAC775', dot: '#BA7517', text: '#633806', label: 'WATCH' },
+    ok:       { bg: '#EAF3DE', border: '#C0DD97', dot: '#639922', text: '#27500A', label: 'OK' },
+  }
+
+  return (
+    <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {alerts.map((a, i) => {
+        const c = COLORS[a.severity]
+        return (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 8, background: c.bg, border: `0.5px solid ${c.border}` }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.dot, flexShrink: 0 }} />
+            <span style={{ fontSize: 10, fontWeight: 700, color: c.dot, letterSpacing: '.05em', flexShrink: 0 }}>{c.label}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: c.text, flexShrink: 0 }}>{a.project}</span>
+            <span style={{ fontSize: 11, fontWeight: 500, color: c.text, flexShrink: 0 }}>{a.icon} {a.title}</span>
+            <span style={{ fontSize: 11, color: c.text, flex: 1 }}>— {a.detail}</span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Main App ──────────────────────────────────────────────────────────
 export default function App() {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('lihtc-auth') === 'true')
@@ -1067,7 +1153,7 @@ export default function App() {
   if (!authed) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f5f4f0' }}>
       <div style={{ background: '#fff', border: '0.5px solid #e5e3db', borderRadius: 16, padding: '2.5rem 2rem', width: 320, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontSize: 18, fontWeight: 500, color: '#1a1a18', marginBottom: 4 }}>Streamline Projects</div>
+        <div style={{ fontSize: 18, fontWeight: 500, color: '#1a1a18', marginBottom: 4 }}>LIHTC Project Tracker</div>
         <div style={{ fontSize: 13, color: '#6b6a63', marginBottom: 24 }}>Enter your password to continue</div>
         <form onSubmit={handleLogin}>
           <input
@@ -1155,7 +1241,7 @@ export default function App() {
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1.5rem 2rem 4rem', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 20, fontWeight: 500, color: '#1a1a18' }}>Streamline Projects</span>
+        <span style={{ fontSize: 20, fontWeight: 500, color: '#1a1a18' }}>LIHTC project tracker</span>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['all', 'Construction', 'Lease-up', 'Stabilized'].map(f => (
             <span key={f} onClick={() => setFilter(f)} style={{
@@ -1178,6 +1264,9 @@ export default function App() {
         {avgOcc !== null && <Kpi label="Avg occupancy" value={`${avgOcc}%`} sub={`${leasePrj.length} projects`} warn={avgOcc < 80} />}
         {flags > 0 && <Kpi label="Flagged" value={flags} sub="need attention" warn />}
       </div>
+
+      {/* Risk alerts */}
+      <RiskAlertBar projects={projects} />
 
       {/* Edit modal */}
       {editing && <EditModal project={editing} onSave={() => { setEditing(null); load() }} onClose={() => setEditing(null)} />}
