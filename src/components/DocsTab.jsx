@@ -53,61 +53,6 @@ export function DocsTab({ project }) {
   async function openDoc(doc) {
     if (!doc.storage_path) return
     try {
-import { useState, useRef } from 'react'
-import { uploadDocument, getDocumentUrl, deleteDocument, updateDocumentMeta, fmtBytes } from '../lib/supabase'
-import { Btn } from './ui'
-import { TYPE_COLORS, FOLDER_ORDER, FOLDER_LABELS } from '../lib/helpers'
-
-const s = { border: '0.5px solid #e5e3db', radius: '8px' }
-
-export function DocsTab({ project }) {
-  const docs = project.documents || []
-  const [filter, setFilter] = useState('all')
-  const [search, setSearch] = useState('')
-  const [uploading, setUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState('')
-  const [editingNote, setEditingNote] = useState(null)
-  const [noteVal, setNoteVal] = useState('')
-  const [localDocs, setLocalDocs] = useState(docs)
-  const [addOpen, setAddOpen] = useState(false)
-  const [collapsed, setCollapsed] = useState(() => {
-    const init = {}
-    FOLDER_ORDER.forEach(f => { init[f] = true })
-    return init
-  })
-  const toggleFolder = (folder) => setCollapsed(c => ({ ...c, [folder]: !c[folder] }))
-  const [newMeta, setNewMeta] = useState({ name: '', folder: 'Monthly Reports', doc_type: 'pm-report', notes: '' })
-  const fileRef = useRef()
-  const addFileRef = useRef()
-  const linked = localDocs.filter(d => d.storage_path).length
-  const total = localDocs.length
-
-  async function handleFileUpload(e, prefill = null) {
-    const files = Array.from(e.target.files)
-    if (!files.length) return
-    setUploading(true)
-    for (const file of files) {
-      setUploadProgress('Uploading ' + file.name + '...')
-      try {
-        const folder = prefill?.folder || 'Monthly Reports'
-        const name = prefill?.name || file.name.replace(/\.[^.]+$/, '').replace(/_/g, ' ')
-        const docType = guessType(file.name)
-        const doc = await uploadDocument(project.id, file, folder, name, docType)
-        setLocalDocs(prev => {
-          const idx = prev.findIndex(d => d.file_name === file.name && !d.storage_path)
-          if (idx >= 0) { const next = [...prev]; next[idx] = { ...next[idx], ...doc }; return next }
-          return [...prev, doc]
-        })
-      } catch (err) { alert('Upload failed for ' + file.name + ': ' + err.message) }
-    }
-    setUploading(false)
-    setUploadProgress('')
-    if (fileRef.current) fileRef.current.value = ''
-  }
-
-  async function openDoc(doc) {
-    if (!doc.storage_path) return
-    try {
       const isExcel = doc.file_name && (doc.file_name.endsWith('.xlsx') || doc.file_name.endsWith('.xls'))
       let href
       if (isExcel) {
@@ -123,7 +68,7 @@ export function DocsTab({ project }) {
   }
 
   async function handleDelete(doc) {
-    if (!confirm('Delete "' + doc.name + '"? This cannot be undone.')) return
+    if (!confirm('Delete ' + doc.name + '? This cannot be undone.')) return
     try {
       await deleteDocument(doc)
       setLocalDocs(prev => prev.filter(d => d.id !== doc.id))
@@ -171,7 +116,6 @@ export function DocsTab({ project }) {
           <div style={{ fontSize: 11, color: '#8f8e87', marginTop: 2 }}>50 MB per file</div>
         </div>
       </div>
-
       <div style={{ background: '#eceae3', borderRadius: 8, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>Upload files</div>
@@ -180,7 +124,6 @@ export function DocsTab({ project }) {
         <input ref={fileRef} type="file" multiple accept=".pdf,.xlsx,.xls,.docx,.doc" onChange={handleFileUpload} style={{ fontSize: 12 }} disabled={uploading} />
         {uploading && <span style={{ fontSize: 12, color: '#633806' }}>{uploadProgress}</span>}
       </div>
-
       <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <input placeholder="Search documents..." value={search} onChange={e => setSearch(e.target.value)}
           style={{ fontSize: 12, flex: 1, minWidth: 160, padding: '6px 10px', border: s.border, borderRadius: s.radius, background: '#fff' }} />
@@ -190,27 +133,16 @@ export function DocsTab({ project }) {
           {FOLDER_ORDER.map(f => <option key={f} value={f}>{FOLDER_LABELS[f]}</option>)}
         </select>
       </div>
-
       {FOLDER_ORDER.map(folder => {
         const folderDocs = filtered.filter(d => d.folder === folder)
         if (!folderDocs.length) return null
         const isColl = collapsed[folder]
         return (
           <div key={folder} style={{ marginBottom: isColl ? 4 : 18 }}>
-            <div
-              onClick={() => toggleFolder(folder)}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '7px 10px', cursor: 'pointer', userSelect: 'none',
-                background: '#eceae3', border: s.border,
-                borderRadius: isColl ? '8px' : '8px 8px 0 0',
-                borderBottom: isColl ? s.border : 'none',
-              }}>
+            <div onClick={() => toggleFolder(folder)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 10px', cursor: 'pointer', userSelect: 'none', background: '#eceae3', border: s.border, borderRadius: isColl ? '8px' : '8px 8px 0 0', borderBottom: isColl ? s.border : 'none' }}>
               <span style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>
                 {FOLDER_LABELS[folder]}
-                <span style={{ fontSize: 11, fontWeight: 400, color: '#6b6a63', marginLeft: 8 }}>
-                  {folderDocs.length} docs · {folderDocs.filter(d => d.storage_path).length} uploaded
-                </span>
+                <span style={{ fontSize: 11, fontWeight: 400, color: '#6b6a63', marginLeft: 8 }}>{folderDocs.length} docs · {folderDocs.filter(d => d.storage_path).length} uploaded</span>
               </span>
               <span style={{ fontSize: 11, color: '#8f8e87', display: 'inline-block', transform: isColl ? 'rotate(-90deg)' : 'none', transition: 'transform .2s' }}>▼</span>
             </div>
@@ -232,8 +164,7 @@ export function DocsTab({ project }) {
                         {doc.file_name && <div style={{ fontSize: 10, color: '#8f8e87', marginTop: 1 }}>{doc.file_name}</div>}
                         {isEditNote ? (
                           <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
-                            <input autoFocus value={noteVal} onChange={e => setNoteVal(e.target.value)} placeholder="Add a note..."
-                              style={{ fontSize: 12, flex: 1, padding: '4px 8px', border: s.border, borderRadius: 6 }} />
+                            <input autoFocus value={noteVal} onChange={e => setNoteVal(e.target.value)} placeholder="Add a note..." style={{ fontSize: 12, flex: 1, padding: '4px 8px', border: s.border, borderRadius: 6 }} />
                             <Btn small onClick={() => saveNote(doc)}>Save</Btn>
                             <Btn small onClick={() => setEditingNote(null)}>Cancel</Btn>
                           </div>
@@ -242,8 +173,7 @@ export function DocsTab({ project }) {
                             {hasFile
                               ? <button onClick={() => openDoc(doc)} style={{ fontSize: 11, color: '#185FA5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Open file</button>
                               : <span style={{ fontSize: 11, color: '#8f8e87' }}>No file yet</span>}
-                            <button onClick={() => { setEditingNote(doc.id); setNoteVal(doc.notes || '') }}
-                              style={{ fontSize: 11, color: '#8f8e87', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                            <button onClick={() => { setEditingNote(doc.id); setNoteVal(doc.notes || '') }} style={{ fontSize: 11, color: '#8f8e87', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                               {doc.notes ? 'Edit note' : '+ Note'}
                             </button>
                             {doc.notes && <span style={{ fontSize: 11, color: '#6b6a63' }}>{doc.notes}</span>}
@@ -254,8 +184,7 @@ export function DocsTab({ project }) {
                         {!hasFile && (
                           <label style={{ fontSize: 11, color: '#185FA5', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                             Upload
-                            <input type="file" accept=".pdf,.xlsx,.xls,.docx,.doc" style={{ display: 'none' }}
-                              onChange={e => handleFileUpload(e, { folder: doc.folder, name: doc.name })} />
+                            <input type="file" accept=".pdf,.xlsx,.xls,.docx,.doc" style={{ display: 'none' }} onChange={e => handleFileUpload(e, { folder: doc.folder, name: doc.name })} />
                           </label>
                         )}
                         {hasFile && <button onClick={() => handleDelete(doc)} style={{ fontSize: 11, color: '#a32d2d', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Delete</button>}
@@ -268,7 +197,6 @@ export function DocsTab({ project }) {
           </div>
         )
       })}
-
       <div style={{ marginTop: 8 }}>
         {!addOpen ? (
           <Btn onClick={() => setAddOpen(true)}>+ Add document</Btn>
