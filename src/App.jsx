@@ -137,7 +137,7 @@ function CapitalSufficiency({ d, leasing }) {
                 {m.noi < 0 ? `(${fm(Math.abs(m.noi))})` : fm(m.noi)}
               </div>
               <div style={{ width: '80%', height: h, background: m.noi < 0 ? '#E24B4A' : '#639922', borderRadius: 2 }} />
-              <div style={{ fontSize: 8, color: '#8f8e87' }}>M{m.month}</div>
+              <div style={{ fontSize: 8, color: '#8f8e87' }}>{(() => { const d = new Date('2026-03-02'); d.setMonth(d.getMonth() + m.month); return d.toLocaleDateString('en-US', {month:'short', year:'2-digit'}) })()}</div>
             </div>
           )
         })}
