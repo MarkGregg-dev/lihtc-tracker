@@ -42,7 +42,6 @@ const SOFT_COSTS = [
 ]
 
 // De-duplicate HUD MIP
-
 const WC_LEDGER = [
   { desc: 'Release #1 (To be reimbursed)', date: '2024-07-18', amount: 398656, balance: 661344 },
   { desc: 'Release #2 (To be reimbursed)', date: '2024-07-31', amount: 491901.25, balance: 169442.75 },
@@ -59,6 +58,7 @@ const WC_LEDGER = [
   { desc: 'Release #12 - Lease up Costs', date: '', amount: 144508, balance: 474359.64 },
   { desc: 'Release #13', date: '', amount: 163274, balance: 311085.64 },
 ]
+
 const CO_LEDGER = [
   { desc: 'Release #1 (CO #2) - HUD Time', date: '2024-12-06', amount: 56420, balance: 1003580 },
   { desc: 'Release #2 (CO #3) - General conditions', date: '2025-01-22', amount: 41355.17, balance: 962224.83 },
@@ -73,6 +73,7 @@ const CO_LEDGER = [
   { desc: 'Release #11 (CO #17)', date: '2025-04-18', amount: 6000.05, balance: 697478.18 },
   { desc: 'Release #12', date: '2025-06-30', amount: 3640, balance: 693838.18 },
 ]
+
 const SOFT_DEDUPED = SOFT_COSTS.filter((item, idx, arr) =>
   arr.findIndex(x => x.label === item.label) === idx
 )
