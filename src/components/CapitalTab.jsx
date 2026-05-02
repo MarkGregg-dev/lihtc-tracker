@@ -42,6 +42,37 @@ const SOFT_COSTS = [
 ]
 
 // De-duplicate HUD MIP
+
+const WC_LEDGER = [
+  { desc: 'Release #1 (To be reimbursed)', date: '2024-07-18', amount: 398656, balance: 661344 },
+  { desc: 'Release #2 (To be reimbursed)', date: '2024-07-31', amount: 491901.25, balance: 169442.75 },
+  { desc: 'Release #3 (To be reimbursed)', date: '2024-08-26', amount: 45518.45, balance: 123924.30 },
+  { desc: 'Release #4 (To be reimbursed)', date: '2024-09-25', amount: 70553.60, balance: 53370.70 },
+  { desc: 'Reimbursed on Draw #2', date: '', amount: -1006629.30, balance: 1060000 },
+  { desc: 'Release #5 - Time Extension', date: '2024-12-05', amount: 159636.09, balance: 900363.91 },
+  { desc: 'Release #6 - Time Extension', date: '2025-01-22', amount: 8570.06, balance: 891793.85 },
+  { desc: 'Release #7 - Time Extension', date: '2025-02-21', amount: 56645.06, balance: 835148.79 },
+  { desc: 'Release #8 - Time Extension', date: '2025-03-31', amount: 30897.31, balance: 804251.48 },
+  { desc: 'Release #9 - Time Extension', date: '2025-04-18', amount: 77243.27, balance: 727008.21 },
+  { desc: 'Release #10 - Time Extension', date: '2025-04-18', amount: 97841.47, balance: 629166.74 },
+  { desc: 'Release #11', date: '2025-06-30', amount: 10299.10, balance: 618867.64 },
+  { desc: 'Release #12 - Lease up Costs', date: '', amount: 144508, balance: 474359.64 },
+  { desc: 'Release #13', date: '', amount: 163274, balance: 311085.64 },
+]
+const CO_LEDGER = [
+  { desc: 'Release #1 (CO #2) - HUD Time', date: '2024-12-06', amount: 56420, balance: 1003580 },
+  { desc: 'Release #2 (CO #3) - General conditions', date: '2025-01-22', amount: 41355.17, balance: 962224.83 },
+  { desc: 'Release #3 (CO #4) - Water Line', date: '2025-01-22', amount: 3640, balance: 958584.83 },
+  { desc: 'Release #4 (CO #6) - General conditions', date: '2025-01-22', amount: 24466.75, balance: 934118.08 },
+  { desc: 'Release #5 (CO #7) - HUD Time', date: '2025-01-22', amount: 26155.39, balance: 907962.69 },
+  { desc: 'Release #6 (CO #8) - Moisture Barrier', date: '2025-01-28', amount: 111664.46, balance: 796298.23 },
+  { desc: 'Release #7 (CO #10) - Water Line', date: '2025-02-21', amount: 20020, balance: 776278.23 },
+  { desc: 'Release #8 (CO #12)', date: '2025-04-30', amount: 10920, balance: 765358.23 },
+  { desc: 'Release #9 (CO #14)', date: '2025-04-18', amount: 27300, balance: 738058.23 },
+  { desc: 'Release #10 (CO #16)', date: '2025-04-18', amount: 34580, balance: 703478.23 },
+  { desc: 'Release #11 (CO #17)', date: '2025-04-18', amount: 6000.05, balance: 697478.18 },
+  { desc: 'Release #12', date: '2025-06-30', amount: 3640, balance: 693838.18 },
+]
 const SOFT_DEDUPED = SOFT_COSTS.filter((item, idx, arr) =>
   arr.findIndex(x => x.label === item.label) === idx
 )
