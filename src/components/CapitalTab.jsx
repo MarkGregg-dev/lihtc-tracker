@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { SectionLabel, Kpi, Bar } from './ui'
+import { DrawParser } from './DrawParser'
+import { supabase } from '../lib/supabase'
 
 const S = { border: '0.5px solid #e5e3db', radius: '8px' }
 const fm = (v) => v == null ? '—' : '$' + Math.abs(Math.round(v)).toLocaleString()
@@ -94,12 +96,40 @@ function calcScenario(pace) {
   return { pace, monthsToStab, totalOpDeficit, totalInterestShortfall, totalCashNeeded, available, surplus, monthly, stabDate: addMonths(monthsToStab) }
 }
 
-export function CapitalTab() {
+export function CapitalTab({ project }) {
   const [activePace, setActivePace] = useState(22)
   const [showAllSoft, setShowAllSoft] = useState(false)
+  const [dbData, setDbData] = useState(null)
 
-  const hardTotal = HARD_COSTS.reduce((a, c) => a + c.amount, 0)
-  const softTotal = SOFT_DEDUPED.reduce((a, c) => a + c.amount, 0)
+  useEffect(() => {
+    if (!project?.id) return
+    supabase.from('capital_data').select('*').eq('project_id', project.id).single()
+      .then(({ data }) => { if (data) setDbData(data) })
+  }, [project?.id])
+
+  // Use DB data if available, otherwise fall back to hardcoded defaults
+  const INTEREST_REMAINING = dbData?.interest_remaining ?? DEFAULTS.INTEREST_REMAINING
+  const MONTHLY_BOND_INTEREST = DEFAULTS.MONTHLY_BOND_INTEREST
+  const WC_ESCROW = dbData?.wc_escrow ?? DEFAULTS.WC_ESCROW
+  const CO_CONTINGENCY = dbData?.co_contingency ?? DEFAULTS.CO_CONTINGENCY
+  const OP_DEFICIT_ESCROW = dbData?.op_deficit_escrow ?? DEFAULTS.OP_DEFICIT_ESCROW
+  const HUD_REMAINING = dbData?.hud_remaining ?? DEFAULTS.HUD_REMAINING
+  const EQUITY_REMAINING = dbData?.equity_remaining ?? DEFAULTS.EQUITY_REMAINING
+  const MONTHS_INTEREST_LEFT = INTEREST_REMAINING / MONTHLY_BOND_INTEREST
+
+  // Use line items from DB if available
+  const dbLineItems = dbData?.line_items || []
+  const dynamicHardCosts = dbLineItems.filter(l =>
+    ['nrp construction','waterproof','connection fee','radon','as-built','soil boring'].some(t => l.label.toLowerCase().includes(t)) && l.remaining > 0
+  )
+  const dynamicSoftCosts = dbLineItems.filter(l =>
+    !['nrp construction','waterproof','connection fee','radon','as-built','soil boring','interest','deferred','operating deficit','working capital','equity','gershman','total'].some(t => l.label.toLowerCase().includes(t)) && l.remaining > 0
+  )
+  const displayHardCosts = dynamicHardCosts.length > 0 ? dynamicHardCosts.map(l => ({ label: l.label, amount: l.remaining })) : HARD_COSTS
+  const displaySoftCosts = dynamicSoftCosts.length > 0 ? dynamicSoftCosts.map(l => ({ label: l.label, amount: l.remaining })) : SOFT_DEDUPED
+
+  const hardTotal = displayHardCosts.reduce((a, c) => a + c.amount, 0)
+  const softTotal = displaySoftCosts.reduce((a, c) => a + c.amount, 0)
   const totalUsesRemaining = hardTotal + softTotal + INTEREST_REMAINING
   const scenarios = [15, 22, 30].map(calcScenario)
   const activeScenario = scenarios.find(s => s.pace === activePace)
@@ -108,6 +138,15 @@ export function CapitalTab() {
 
   return (
     <div>
+      {/* Upload parser */}
+      <DrawParser projectId={project?.id} onParsed={(d) => setDbData(d)} />
+      {dbData?.updated_at && (
+        <div style={{ fontSize: 11, color: '#8f8e87', marginBottom: 10 }}>
+          Last updated from draw spreadsheet: {new Date(dbData.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          {dbData.last_draw_num && ` · Draw #${dbData.last_draw_num}`}
+          {dbData.last_draw_date && ` (${dbData.last_draw_date})`}
+        </div>
+      )}
       {/* Top KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 8, marginBottom: 16 }}>
         <Kpi label="HUD draws remaining" value={fm(HUD_REMAINING)} sub="covers all construction" />
@@ -170,7 +209,7 @@ export function CapitalTab() {
           <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
             <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
               <tbody>
-                {HARD_COSTS.map((row, i) => (
+                {displayHardCosts.map((row, i) => (
                   <tr key={i} style={{ borderBottom: i < HARD_COSTS.length - 1 ? S.border : 'none' }}>
                     <td style={{ padding: '6px 10px', color: '#1a1a18' }}>{row.label}</td>
                     <td style={{ padding: '6px 10px', color: '#1a1a18', textAlign: 'right', fontWeight: 500 }}>{fm(row.amount)}</td>
@@ -188,7 +227,7 @@ export function CapitalTab() {
           <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
             <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse' }}>
               <tbody>
-                {(showAllSoft ? SOFT_DEDUPED : SOFT_DEDUPED.slice(0, 6)).map((row, i) => (
+                {(showAllSoft ? displaySoftCosts : displaySoftCosts.slice(0, 6)).map((row, i) => (
                   <tr key={i} style={{ borderBottom: S.border }}>
                     <td style={{ padding: '6px 10px', color: '#1a1a18' }}>{row.label}</td>
                     <td style={{ padding: '6px 10px', color: '#1a1a18', textAlign: 'right', fontWeight: 500 }}>{fm(row.amount)}</td>
@@ -198,7 +237,7 @@ export function CapitalTab() {
                   <tr style={{ borderBottom: S.border }}>
                     <td colSpan={2} style={{ padding: '6px 10px' }}>
                       <button onClick={() => setShowAllSoft(true)} style={{ fontSize: 11, color: '#185FA5', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                        + Show all {SOFT_DEDUPED.length} line items
+                        + Show all {displaySoftCosts.length} line items
                       </button>
                     </td>
                   </tr>

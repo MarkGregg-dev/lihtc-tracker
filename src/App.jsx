@@ -7,6 +7,7 @@ import { BinsTab } from './components/BinsTab'
 import { LeaseUpTab } from './components/LeaseUpTab'
 import { SiteMapTab } from './components/SiteMapTab'
 import { CapitalTab } from './components/CapitalTab'
+import { DrawParser } from './components/DrawParser'
 
 // ── Project logos ────────────────────────────────────────────────────
 const PROJECT_LOGOS = {
@@ -904,7 +905,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
           {tab === 'bins' && <BinsTab project={project} />}
           {tab === 'leaseup' && <LeaseUpTab project={project} />}
           {tab === 'sitemap' && <SiteMapTab project={project} />}
-          {tab === 'capital' && <CapitalTab />}
+          {tab === 'capital' && <CapitalTab project={project} />}
           {tab === 'docs' && <DocsTab project={project} />}
           {tab === 'info' && (
             <div>
