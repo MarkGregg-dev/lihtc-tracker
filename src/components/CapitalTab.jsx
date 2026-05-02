@@ -123,6 +123,186 @@ function calcScenario(pace, asOfDate, interestRemaining, wcEscrow, opEscrow) {
   return { pace, monthsToStab, totalOpDeficit, totalInterestShortfall, totalCashNeeded, available, surplus, monthly, stabDate: addMonths(monthsToStab, asOfDate) }
 }
 
+
+function RunwayModel({ asOfDate, interestRemaining, wcEscrow, opDeficitEscrow, currentOccUnits, pace }) {
+  const MONTHLY_BOND_INT = 117167
+  const CURRENT_DEFICIT = 23834
+  const STAB_NOI = 22749
+  const STAB_TARGET = 326
+  const TOTAL_UNITS = 363
+
+  const unitsNeeded = STAB_TARGET - currentOccUnits
+  const monthsToStab = unitsNeeded / pace
+
+  function getMonthDate(offset) {
+    const d = new Date(asOfDate)
+    d.setMonth(d.getMonth() + offset)
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  }
+
+  const months = []
+  let intReserve = interestRemaining
+  let wc = wcEscrow
+  let stabilized = false
+
+  for (let m = 1; m <= 18; m++) {
+    const progress = Math.min(m / monthsToStab, 1.0)
+    const occUnits = Math.min(currentOccUnits + Math.round(pace * m), STAB_TARGET)
+    const occPct = Math.round(occUnits / TOTAL_UNITS * 100)
+    const noi = Math.round(-CURRENT_DEFICIT + (CURRENT_DEFICIT + STAB_NOI) * progress)
+
+    // Bond interest: first from interest reserve, then WC
+    const intFromReserve = Math.min(MONTHLY_BOND_INT, intReserve)
+    intReserve = Math.max(0, intReserve - MONTHLY_BOND_INT)
+    const intFromWC = MONTHLY_BOND_INT - intFromReserve
+
+    // Op deficit from WC (pre-stab only)
+    const opFromWC = (!stabilized && noi < 0) ? Math.abs(noi) : 0
+    wc = Math.max(0, wc - intFromWC - opFromWC)
+
+    if (occUnits >= STAB_TARGET && !stabilized) stabilized = true
+
+    const totalBurn = MONTHLY_BOND_INT + Math.max(0, -noi)
+    const slpRequired = (intReserve <= 0 && wc <= 0 && !stabilized)
+
+    let status, statusColor, statusBg
+    if (stabilized) {
+      status = 'Stabilized'; statusColor = '#27500A'; statusBg = '#EAF3DE'
+    } else if (slpRequired || (intReserve <= 0 && wc <= 0)) {
+      status = 'SLP cash required'; statusColor = '#791F1F'; statusBg = '#FCEBEB'
+    } else if (intReserve <= 0) {
+      status = 'WC only'; statusColor = '#633806'; statusBg = '#FEF3E2'
+    } else if (intReserve < MONTHLY_BOND_INT * 2) {
+      status = 'Watch'; statusColor = '#633806'; statusBg = '#FAEEDA'
+    } else {
+      status = 'OK'; statusColor = '#27500A'; statusBg = '#EAF3DE'
+    }
+
+    months.push({
+      m, label: getMonthDate(m), occPct, noi, totalBurn,
+      intReserve: Math.max(0, intReserve), wc: Math.max(0, wc),
+      slpRequired, stabilized, status, statusColor, statusBg
+    })
+
+    if (stabilized && m > monthsToStab + 2) break
+  }
+
+  const slpStartMonth = months.find(m => m.slpRequired)
+  const stabMonth = months.find(m => m.stabilized)
+  const maxReserve = interestRemaining + wcEscrow
+
+  return (
+    <div style={{ marginTop: 16 }}>
+      <SectionLabel>Month-by-month cash runway — {pace} units/month</SectionLabel>
+
+      {/* Key milestone callouts */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 8, marginBottom: 14 }}>
+        <div style={{ padding: '10px 14px', background: '#FAEEDA', border: '0.5px solid #FAC775', borderRadius: '8px' }}>
+          <div style={{ fontSize: 11, color: '#633806', marginBottom: 2 }}>Interest reserve exhausted</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#633806' }}>{getMonthDate(Math.ceil(interestRemaining / MONTHLY_BOND_INT))}</div>
+          <div style={{ fontSize: 10, color: '#8f8e87', marginTop: 1 }}>Month {Math.ceil(interestRemaining / MONTHLY_BOND_INT)}</div>
+        </div>
+        {slpStartMonth ? (
+          <div style={{ padding: '10px 14px', background: '#FCEBEB', border: '0.5px solid #F09595', borderRadius: '8px' }}>
+            <div style={{ fontSize: 11, color: '#791F1F', marginBottom: 2 }}>⚠ SLP cash required from</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#791F1F' }}>{slpStartMonth.label}</div>
+            <div style={{ fontSize: 10, color: '#8f8e87', marginTop: 1 }}>Under construction guaranty</div>
+          </div>
+        ) : (
+          <div style={{ padding: '10px 14px', background: '#EAF3DE', border: '0.5px solid #C0DD97', borderRadius: '8px' }}>
+            <div style={{ fontSize: 11, color: '#27500A', marginBottom: 2 }}>✓ Reserves hold until stab</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#27500A' }}>No SLP cash needed</div>
+          </div>
+        )}
+        {stabMonth && (
+          <div style={{ padding: '10px 14px', background: '#EAF3DE', border: '0.5px solid #C0DD97', borderRadius: '8px' }}>
+            <div style={{ fontSize: 11, color: '#27500A', marginBottom: 2 }}>Stabilization — op escrow unlocks</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#27500A' }}>{stabMonth.label}</div>
+            <div style={{ fontSize: 10, color: '#8f8e87', marginTop: 1 }}>${(opDeficitEscrow/1000).toFixed(0)}K released</div>
+          </div>
+        )}
+        <div style={{ padding: '10px 14px', background: '#eceae3', border: '0.5px solid #e5e3db', borderRadius: '8px' }}>
+          <div style={{ fontSize: 11, color: '#6b6a63', marginBottom: 2 }}>Op deficit escrow (locked)</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a18' }}>${(opDeficitEscrow/1000).toFixed(0)}K</div>
+          <div style={{ fontSize: 10, color: '#8f8e87', marginTop: 1 }}>Unlocks at stabilization only</div>
+        </div>
+      </div>
+
+      {/* Reserve level chart */}
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ display: 'flex', gap: 3, alignItems: 'flex-end', height: 60 }}>
+          {months.map((m, i) => {
+            const total = m.intReserve + m.wc
+            const h = Math.max(2, Math.round((total / maxReserve) * 55))
+            const intH = Math.max(0, Math.round((m.intReserve / maxReserve) * 55))
+            const wcH = h - intH
+            return (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div style={{ width: '80%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                  {intH > 0 && <div style={{ height: intH, background: '#BA7517', borderRadius: '2px 2px 0 0' }} />}
+                  {wcH > 0 && <div style={{ height: wcH, background: '#378ADD' }} />}
+                  {total <= 0 && !m.stabilized && <div style={{ height: 4, background: '#E24B4A', borderRadius: 2 }} />}
+                  {m.stabilized && <div style={{ height: 4, background: '#639922', borderRadius: 2 }} />}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <div style={{ display: 'flex', gap: 3 }}>
+          {months.map((m, i) => (
+            <div key={i} style={{ flex: 1, fontSize: 6, color: '#8f8e87', textAlign: 'center', marginTop: 2 }}>{m.label.split(' ')[0]}</div>
+          ))}
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
+        {[['#BA7517','Interest reserve'],['#378ADD','WC escrow'],['#E24B4A','Reserves exhausted'],['#639922','Stabilized']].map(([c,l]) => (
+          <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{ width: 8, height: 8, background: c, borderRadius: 2 }} />
+            <span style={{ fontSize: 10, color: '#6b6a63' }}>{l}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Month-by-month table */}
+      <div style={{ border: '0.5px solid #e5e3db', borderRadius: '8px', overflow: 'hidden' }}>
+        <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+          <thead><tr style={{ background: '#eceae3' }}>
+            {['Month','Occ %','Monthly NOI','Bond interest','Int reserve','WC escrow','Status'].map(h => (
+              <th key={h} style={{ padding: '6px 10px', textAlign: 'left', fontWeight: 500, color: '#6b6a63', borderBottom: '0.5px solid #e5e3db' }}>{h}</th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {months.map((m, i) => (
+              <tr key={i} style={{ borderBottom: i < months.length - 1 ? '0.5px solid #e5e3db' : 'none', background: m.statusBg }}>
+                <td style={{ padding: '5px 10px', fontWeight: 500, color: '#1a1a18' }}>{m.label}</td>
+                <td style={{ padding: '5px 10px', color: '#1a1a18' }}>{m.occPct}%</td>
+                <td style={{ padding: '5px 10px', color: m.noi < 0 ? '#a32d2d' : '#27500A', fontWeight: 500 }}>{m.noi < 0 ? `(${fm(Math.abs(m.noi))})` : fm(m.noi)}</td>
+                <td style={{ padding: '5px 10px', color: '#6b6a63' }}>{fm(117167)}</td>
+                <td style={{ padding: '5px 10px', color: m.intReserve < 50000 ? '#a32d2d' : '#1a1a18', fontWeight: m.intReserve < 50000 ? 600 : 400 }}>{m.intReserve <= 0 ? '—' : fm(m.intReserve)}</td>
+                <td style={{ padding: '5px 10px', color: m.wc < 50000 && !m.stabilized ? '#a32d2d' : '#1a1a18', fontWeight: m.wc < 50000 && !m.stabilized ? 600 : 400 }}>{m.wc <= 0 && !m.stabilized ? '—' : fm(m.wc)}</td>
+                <td style={{ padding: '5px 10px' }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: m.statusColor }}>{m.status}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 10, color: '#8f8e87', marginTop: 6, lineHeight: 1.5 }}>
+        Operating deficit escrow (${(opDeficitEscrow/1000).toFixed(0)}K) is excluded — locked until stabilization per LPA. After reserves exhaust, SLP funds bond interest under construction guaranty as excess development costs.
+
+      <RunwayModel
+        asOfDate={asOfDate}
+        interestRemaining={INTEREST_REMAINING}
+        wcEscrow={WC_ESCROW}
+        opDeficitEscrow={OP_DEFICIT_ESCROW}
+        currentOccUnits={63}
+        pace={activePace}
+      />
+    </div>
+  )
+}
+
 function EscrowLedger({ ledger, beginning, label }) {
   const [expanded, setExpanded] = useState(false)
   const currentBalance = ledger.length > 0 ? ledger[ledger.length - 1].balance : beginning
