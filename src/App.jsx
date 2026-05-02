@@ -40,8 +40,13 @@ function CapitalSufficiency({ d, leasing }) {
   const equityRemaining = (d?.equity_schedule || []).filter(e => e.status !== 'funded').reduce((a,e) => a+e.amount, 0)
   const odgCap = 2695000
 
-  // Construction sufficiency
-  const constructionBuffer = coContingency - constructionRemaining
+  // Construction sufficiency — HUD 221(d)(4): construction paid from HUD draws not escrows
+  // CO contingency is for change orders only, not base construction
+  const hudRemaining = 4815030
+  const softCostsRemaining = 1576510
+  const interestRemaining = 287384
+  const totalConstructionUses = constructionRemaining + softCostsRemaining + interestRemaining
+  const constructionBuffer = hudRemaining - totalConstructionUses
   const constructionOk = constructionBuffer >= 0
 
   // Lease-up deficit projection — linear from current deficit to break-even at stabilization
@@ -68,22 +73,25 @@ function CapitalSufficiency({ d, leasing }) {
         {/* Construction */}
         <div style={{ padding: '12px 14px', borderRadius: S.radius, background: constructionOk ? '#EAF3DE' : '#FCEBEB', border: `0.5px solid ${constructionOk ? '#C0DD97' : '#F09595'}` }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a18', marginBottom: 10 }}>
-            {constructionOk ? '✓' : '⚠'} Construction — {constructionOk ? 'Sufficient' : 'Gap identified'}
+            {constructionOk ? '✓' : '⚠'} Construction — {constructionOk ? 'HUD draws sufficient' : 'Monitor closely'}
           </div>
           {[
-            ['Construction remaining', constructionRemaining, true],
-            ['CO contingency available', coContingency, false],
-            ['Buffer / (Gap)', constructionBuffer, false],
+            ['HUD loan draws remaining', hudRemaining, false],
+            ['Construction remaining (NRP)', constructionRemaining, true],
+            ['Soft costs remaining', softCostsRemaining, true],
+            ['Interest reserve remaining', interestRemaining, true],
+            ['Total uses remaining', totalConstructionUses, true],
+            ['HUD buffer', constructionBuffer, false],
           ].map(([label, val, isUse]) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: '0.5px solid rgba(0,0,0,0.06)' }}>
-              <span style={{ color: '#6b6a63' }}>{label}</span>
+              <span style={{ color: label === 'HUD buffer' ? '#1a1a18' : '#6b6a63', fontWeight: label === 'HUD buffer' || label === 'HUD loan draws remaining' ? 500 : 400 }}>{label}</span>
               <span style={{ fontWeight: 500, color: val < 0 ? '#a32d2d' : '#1a1a18' }}>{isUse ? `(${fm(val)})` : fm(val)}</span>
             </div>
           ))}
           <div style={{ fontSize: 11, color: constructionOk ? '#27500A' : '#791F1F', marginTop: 6, lineHeight: 1.4 }}>
             {constructionOk
-              ? `CO contingency covers remaining construction with ${fm(constructionBuffer)} to spare.`
-              : `${fm(Math.abs(constructionBuffer))} gap. Working capital or equity advances may be needed.`}
+              ? `HUD draws cover all remaining construction, soft costs, and interest with ${fm(constructionBuffer)} to spare. CO contingency ($${(coContingency/1000).toFixed(0)}K) is separate and reserved for change orders only.`
+              : `HUD draws may fall short. Review draw schedule immediately.`}
           </div>
         </div>
 
