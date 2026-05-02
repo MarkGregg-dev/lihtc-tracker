@@ -1067,7 +1067,7 @@ export default function App() {
   if (!authed) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f5f4f0' }}>
       <div style={{ background: '#fff', border: '0.5px solid #e5e3db', borderRadius: 16, padding: '2.5rem 2rem', width: 320, boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontSize: 18, fontWeight: 500, color: '#1a1a18', marginBottom: 4 }}>LIHTC Project Tracker</div>
+        <div style={{ fontSize: 18, fontWeight: 500, color: '#1a1a18', marginBottom: 4 }}>Streamline Projects</div>
         <div style={{ fontSize: 13, color: '#6b6a63', marginBottom: 24 }}>Enter your password to continue</div>
         <form onSubmit={handleLogin}>
           <input
@@ -1155,7 +1155,7 @@ export default function App() {
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1.5rem 2rem 4rem', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 20, fontWeight: 500, color: '#1a1a18' }}>LIHTC project tracker</span>
+        <span style={{ fontSize: 20, fontWeight: 500, color: '#1a1a18' }}>Streamline Projects</span>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['all', 'Construction', 'Lease-up', 'Stabilized'].map(f => (
             <span key={f} onClick={() => setFilter(f)} style={{
