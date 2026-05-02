@@ -124,6 +124,8 @@ function calcScenario(pace, asOfDate, interestRemaining, wcEscrow, opEscrow) {
 }
 
 
+function EscrowLedger({ ledger, beginning, label }
+
 function RunwayModel({ asOfDate, interestRemaining, wcEscrow, opDeficitEscrow, currentOccUnits, pace }) {
   const MONTHLY_BOND_INT = 117167
   const CURRENT_DEFICIT = 23834
@@ -302,8 +304,7 @@ function RunwayModel({ asOfDate, interestRemaining, wcEscrow, opDeficitEscrow, c
     </div>
   )
 }
-
-function EscrowLedger({ ledger, beginning, label }) {
+) {
   const [expanded, setExpanded] = useState(false)
   const currentBalance = ledger.length > 0 ? ledger[ledger.length - 1].balance : beginning
   const totalReleased = beginning - currentBalance
