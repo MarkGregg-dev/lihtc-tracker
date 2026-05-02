@@ -53,7 +53,6 @@ export function DocsTab({ project }) {
   async function openDoc(doc) {
     if (!doc.storage_path) return
     try {
-cat > src/components/DocsTab.jsx << 'ENDOFFILE'
 import { useState, useRef } from 'react'
 import { uploadDocument, getDocumentUrl, deleteDocument, updateDocumentMeta, fmtBytes } from '../lib/supabase'
 import { Btn } from './ui'
