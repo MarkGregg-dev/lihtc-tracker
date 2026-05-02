@@ -579,7 +579,6 @@ formula: 'Component A: FY2026 Actual Credits < $2,317,826, shortfall x $0.60. Co
               { name: 'Construction guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Completion by earliest of Dec 31 2026, Project Documents date, or date required for Tax Credits. SLP pays ALL excess development costs from own funds. DDF Election available with AHF consent.' },
               { name: 'Operating deficit guaranty', cap: odgCap, obligor: 'SLP', status: 'active', detail: `Commences at Stabilization, runs 5 years (Initial Period). ODG cap: ${fm(odgCap)}. Note: Real Estate Tax Exemption Guaranty is NOT subject to the ODG cap. If new project built within 1-mile radius, ODG period extends to 6 years after that project's last CO.` },
               { name: 'Stabilization guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Stabilization by Jun 30, 2027. SLP funds First Priority Loan payments from own funds if needed to achieve Stabilization. All such payments are Excess Development Costs.' },
-              { name: 'Tax credit compliance guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Pay AHF for any Tax Credit Shortfall including: shortfall amount, IRS penalties/interest, gross-up for AHF's tax liability on receipt, legal/accounting costs. Due 75 days after Tax Credit Loss Event.' },
               { name: 'Real estate tax exemption guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'UNCAPPED — no ODG Cap applies. If property tax exemption is lost (SMHA/PFC structure), SLP funds via Operating Deficit Loan with no cap. Also a Conversion Event.' },
               { name: 'Bond / First Priority Loan guaranty', cap: null, obligor: 'SLP', status: 'active', detail: 'Bonds of $38M must be issued and remain outstanding until Apartment Complex placed in service. Bonds paid in full by Jul 1, 2028. No redemption/refunding/remarketing without AHF consent.' },
               { name: 'Misconduct indemnity', cap: null, obligor: 'SLP & GP', status: 'active', detail: 'Breach of fiduciary duty, intentional misstatement, gross negligence, willful breach, intentional misconduct, bad faith, misappropriation of funds, or fraud by GP, SLP, Developer, PM, or Contractor.' },
@@ -602,7 +601,7 @@ formula: 'Component A: FY2026 Actual Credits < $2,317,826, shortfall x $0.60. Co
             <SectionLabel mt={0}>Property manager removal triggers</SectionLabel>
             <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
               {[
-                { trigger: 'Investor LP Loans outstanding > $50,000', note: 'Made during PM's engagement period' },
+                { trigger: 'Investor LP Loans outstanding > $50,000', note: 'Made during PM engagement period' },
                 { trigger: 'Tax credit shortfall attributable to PM noncompliance', note: 'Not reimbursed by SLP' },
                 { trigger: 'Occupancy < 87% for any consecutive 3-month period after Stabilization', note: 'Key ongoing threshold' },
                 { trigger: 'Failing TDHCA inspection', note: '' },
