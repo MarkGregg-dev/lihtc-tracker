@@ -611,7 +611,7 @@ function LpaTab({ lpa }) {
             <SectionLabel mt={0}>Property manager removal triggers</SectionLabel>
             <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
               {[
-                { trigger: 'Investor LP Loans outstanding > $50,000', note: 'Made during PM's engagement period' },
+                { trigger: 'Investor LP Loans outstanding > $50,000', note: 'Made during PM engagement period' },
                 { trigger: 'Tax credit shortfall attributable to PM noncompliance', note: 'Not reimbursed by SLP' },
                 { trigger: 'Occupancy < 87% for any consecutive 3-month period after Stabilization', note: 'Key ongoing threshold' },
                 { trigger: 'Failing TDHCA inspection', note: '' },
