@@ -96,6 +96,56 @@ function calcScenario(pace) {
   return { pace, monthsToStab, totalOpDeficit, totalInterestShortfall, totalCashNeeded, available, surplus, monthly, stabDate: addMonths(monthsToStab) }
 }
 
+function EscrowLedger({ ledger, beginning, label }) {
+  const [expanded, setExpanded] = useState(false)
+  const currentBalance = ledger.length > 0 ? ledger[ledger.length - 1].balance : beginning
+  const totalReleased = beginning - currentBalance
+  const pctUsed = Math.round((totalReleased / beginning) * 100)
+  const displayLedger = ledger.filter(t => t.amount !== 0)
+
+  return (
+    <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
+      <div onClick={() => setExpanded(e => !e)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#eceae3', cursor: 'pointer', userSelect: 'none' }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>{label}</span>
+          <span style={{ fontSize: 11, color: '#6b6a63' }}>Beginning: {fm(beginning)}</span>
+          <span style={{ fontSize: 11, color: '#633806', fontWeight: 500 }}>Released: {fm(totalReleased)} ({pctUsed}%)</span>
+          <span style={{ fontSize: 11, color: currentBalance < beginning * 0.3 ? '#a32d2d' : '#27500A', fontWeight: 600 }}>Balance: {fm(currentBalance)}</span>
+        </div>
+        <span style={{ fontSize: 10, color: '#8f8e87', transform: expanded ? 'none' : 'rotate(-90deg)', transition: 'transform .2s' }}>▼</span>
+      </div>
+      <div style={{ padding: '6px 12px 2px', background: '#fff' }}>
+        <div style={{ height: 5, background: '#e5e3db', borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
+          <div style={{ width: pctUsed + '%', height: '100%', background: pctUsed > 70 ? '#E24B4A' : '#378ADD', borderRadius: 3 }} />
+        </div>
+      </div>
+      {expanded && displayLedger.length > 0 && (
+        <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
+          <thead><tr style={{ background: '#f5f4f0' }}>
+            {['#', 'Date', 'Description', 'Amount', 'Balance'].map(h => (
+              <th key={h} style={{ padding: '5px 10px', textAlign: 'left', fontWeight: 500, color: '#6b6a63', borderBottom: S.border }}>{h}</th>
+            ))}
+          </tr></thead>
+          <tbody>
+            {displayLedger.map((t, i) => (
+              <tr key={i} style={{ borderBottom: i < displayLedger.length - 1 ? S.border : 'none' }}>
+                <td style={{ padding: '5px 10px', color: '#8f8e87' }}>{i + 1}</td>
+                <td style={{ padding: '5px 10px', color: '#6b6a63' }}>{t.date || '—'}</td>
+                <td style={{ padding: '5px 10px', color: '#1a1a18' }}>{t.desc}</td>
+                <td style={{ padding: '5px 10px', color: t.amount < 0 ? '#27500A' : '#633806', fontWeight: 500 }}>{t.amount < 0 ? '+' : ''}{fm(Math.abs(t.amount))}</td>
+                <td style={{ padding: '5px 10px', color: '#1a1a18', fontWeight: 500 }}>{fm(t.balance)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {expanded && displayLedger.length === 0 && (
+        <div style={{ padding: '8px 12px', fontSize: 11, color: '#8f8e87' }}>No transactions yet — upload draw spreadsheet to populate.</div>
+      )}
+    </div>
+  )
+}
+
 export function CapitalTab({ project }) {
   const [activePace, setActivePace] = useState(22)
   const [showAllSoft, setShowAllSoft] = useState(false)
@@ -116,6 +166,8 @@ export function CapitalTab({ project }) {
   const HUD_REMAINING = dbData?.hud_remaining ?? DEFAULTS.HUD_REMAINING
   const EQUITY_REMAINING = dbData?.equity_remaining ?? DEFAULTS.EQUITY_REMAINING
   const MONTHS_INTEREST_LEFT = INTEREST_REMAINING / MONTHLY_BOND_INTEREST
+  const wcLedger = dbData?.wc_ledger || WC_LEDGER
+  const coLedger = dbData?.co_ledger || CO_LEDGER
 
   // Use line items from DB if available
   const dbLineItems = dbData?.line_items || []
@@ -204,6 +256,12 @@ export function CapitalTab({ project }) {
               </tbody>
             </table>
           </div>
+
+          <SectionLabel>Working capital escrow — transaction history</SectionLabel>
+          <EscrowLedger ledger={wcLedger} beginning={1060000} label="Working capital" />
+
+          <SectionLabel>CO contingency escrow — transaction history</SectionLabel>
+          <EscrowLedger ledger={coLedger} beginning={1060000} label="CO contingency" />
 
           <SectionLabel>Hard costs remaining — paid from HUD draws</SectionLabel>
           <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 16 }}>
