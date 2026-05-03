@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { Buffer } from 'buffer'
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -19,6 +20,18 @@ function detectProject(subject, from) {
   return null
 }
 
+async function extractPdfText(base64) {
+  try {
+    const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js')
+    const buffer = Buffer.from(base64, 'base64')
+    const data = await pdfParse(buffer, { max: 15 })
+    return data.text
+  } catch (err) {
+    console.error('PDF text extraction error:', err.message)
+    return null
+  }
+}
+
 export const config = { api: { bodyParser: { sizeLimit: '50mb' } } }
 
 export default async function handler(req, res) {
@@ -29,11 +42,19 @@ export default async function handler(req, res) {
 
     if (!base64) return res.status(400).json({ error: 'No base64 content provided' })
 
-    console.log('base64 length:', base64.length, 'from:', from, 'subject:', subject)
+    console.log('base64 length:', base64.length, 'subject:', subject)
 
-    // Truncate large PDFs - first 600KB covers the financial summary pages
-    const truncated = base64
-    console.log('sending full PDF, length:', truncated.length)
+    // Extract text from PDF instead of sending binary
+    const pdfText = await extractPdfText(base64)
+    console.log('PDF text length:', pdfText ? pdfText.length : 0)
+    console.log('PDF text sample:', pdfText ? pdfText.substring(0, 300) : 'NONE')
+
+    if (!pdfText) {
+      return res.status(200).json({ success: false, error: 'Could not extract text from PDF' })
+    }
+
+    // Only send first 15000 chars which covers the financial summary
+    const textToSend = pdfText.substring(0, 15000)
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -47,48 +68,40 @@ export default async function handler(req, res) {
         max_tokens: 2000,
         messages: [{
           role: 'user',
-          content: [
-            {
-              type: 'document',
-              source: { type: 'base64', media_type: 'application/pdf', data: truncated }
-            },
-            {
-              type: 'text',
-              text: `This is a monthly property management report for a LIHTC apartment complex. Extract financial data and return ONLY a JSON object with no markdown or explanation.
+          content: `This is extracted text from a monthly property management report. Extract financial data and return ONLY a JSON object with no markdown.
 
-From the Budget Comparison Summary (PTD Actual column):
-- period: format "YYYY-MM" (e.g. "2026-02" for February 2026)
-- period_date: format "YYYY-MM-01"
-- gross_potential_rent: number
-- vacancy_loss: negative number
-- concessions: negative number or 0
-- net_rental_income: number
-- other_income: number
-- total_operating_income: number
-- salaries_benefits: negative number
-- repairs_maintenance: negative number
-- contract_services: negative number
-- utilities: negative number
-- general_admin: negative number
-- leasing: negative number
-- management_fee: negative number
-- total_operating_expenses: negative number
-- noi: number (income + expenses)
-- ptd_budget_income: number
-- ptd_budget_expenses: negative number
-- ptd_budget_noi: number
+TEXT:
+${textToSend}
 
-From the rent roll or occupancy summary:
-- total_units: integer
-- occupied_units: integer
-- vacant_units: integer
-- occupancy_pct: decimal (e.g. 17.4)
-- actual_rent_collected: number
-- delinquency: number
+Extract these fields:
+- period: "YYYY-MM" (e.g. "2026-03" for March 2026)
+- period_date: "YYYY-MM-01"
+- gross_potential_rent
+- vacancy_loss (negative)
+- concessions (negative or 0)
+- net_rental_income
+- other_income
+- total_operating_income
+- salaries_benefits (negative)
+- repairs_maintenance (negative)
+- contract_services (negative)
+- utilities (negative)
+- general_admin (negative)
+- leasing (negative)
+- management_fee (negative)
+- total_operating_expenses (negative)
+- noi
+- ptd_budget_income
+- ptd_budget_expenses (negative)
+- ptd_budget_noi
+- total_units (integer)
+- occupied_units (integer)
+- vacant_units (integer)
+- occupancy_pct (decimal)
+- actual_rent_collected
+- delinquency
 
 Return ONLY the JSON object.`
-            }
-          ]
         }]
       })
     })
@@ -101,21 +114,20 @@ Return ONLY the JSON object.`
     try {
       parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
     } catch (e) {
-      console.error('JSON parse error:', e.message, 'text was:', text.substring(0, 200))
-      return res.status(200).json({ success: false, error: 'Could not parse Claude response', raw: text.substring(0, 200) })
+      console.error('JSON parse error:', e.message)
+      return res.status(200).json({ success: false, error: 'Could not parse response', raw: text.substring(0, 200) })
     }
 
     const projectId = project_id || detectProject(subject, from)
 
     if (projectId && parsed.period) {
-      const snapshot = { project_id: projectId, ...parsed }
       const { error: dbErr } = await supabase
         .from('monthly_snapshots')
-        .upsert(snapshot, { onConflict: 'project_id,period' })
+        .upsert({ project_id: projectId, ...parsed }, { onConflict: 'project_id,period' })
       if (dbErr) console.error('Supabase error:', dbErr.message)
       else console.log('Saved snapshot for period:', parsed.period)
     } else {
-      console.log('No project or period — projectId:', projectId, 'period:', parsed.period)
+      console.log('Missing project or period — projectId:', projectId, 'period:', parsed.period)
     }
 
     if (from || subject) {
@@ -132,7 +144,7 @@ Return ONLY the JSON object.`
       })
     }
 
-    return res.status(200).json({ success: true, period: parsed.period, occupancy_pct: parsed.occupancy_pct, noi: parsed.noi })
+    return res.status(200).json({ success: true, period: parsed.period, noi: parsed.noi, occupancy_pct: parsed.occupancy_pct })
 
   } catch (err) {
     console.error('Parse financials error:', err.message)
