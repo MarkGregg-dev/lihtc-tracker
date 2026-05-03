@@ -26,9 +26,14 @@ export default async function handler(req, res) {
 
   try {
     const { base64, mediaType, from, subject, project_id } = req.body
-    console.log('base64 length:', (base64||'').length, 'has content:', !!base64)
 
     if (!base64) return res.status(400).json({ error: 'No base64 content provided' })
+
+    console.log('base64 length:', base64.length, 'from:', from, 'subject:', subject)
+
+    // Truncate large PDFs - first 600KB covers the financial summary pages
+    const truncated = base64.length > 800000 ? base64.substring(0, 800000) : base64
+    console.log('truncated length:', truncated.length)
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -45,43 +50,43 @@ export default async function handler(req, res) {
           content: [
             {
               type: 'document',
-              source: { type: 'base64', media_type: mediaType || 'application/pdf', data: base64 }
+              source: { type: 'base64', media_type: 'application/pdf', data: truncated }
             },
             {
               type: 'text',
-              text: `This is a monthly property management report. Extract the following and return ONLY a JSON object, no markdown.
+              text: `This is a monthly property management report for a LIHTC apartment complex. Extract financial data and return ONLY a JSON object with no markdown or explanation.
 
 From the Budget Comparison Summary (PTD Actual column):
-- period: "YYYY-MM"
-- period_date: "YYYY-MM-01"
-- gross_potential_rent
-- vacancy_loss (negative)
-- concessions (negative)
-- net_rental_income
-- other_income
-- total_operating_income
-- salaries_benefits (negative)
-- repairs_maintenance (negative)
-- contract_services (negative)
-- utilities (negative)
-- general_admin (negative)
-- leasing (negative)
-- management_fee (negative)
-- total_operating_expenses (negative)
-- noi
-- ptd_budget_income
-- ptd_budget_expenses
-- ptd_budget_noi
+- period: format "YYYY-MM" (e.g. "2026-02" for February 2026)
+- period_date: format "YYYY-MM-01"
+- gross_potential_rent: number
+- vacancy_loss: negative number
+- concessions: negative number or 0
+- net_rental_income: number
+- other_income: number
+- total_operating_income: number
+- salaries_benefits: negative number
+- repairs_maintenance: negative number
+- contract_services: negative number
+- utilities: negative number
+- general_admin: negative number
+- leasing: negative number
+- management_fee: negative number
+- total_operating_expenses: negative number
+- noi: number (income + expenses)
+- ptd_budget_income: number
+- ptd_budget_expenses: negative number
+- ptd_budget_noi: number
 
-From the Affordable Gross Potential Rent section:
-- total_units
-- occupied_units
-- vacant_units
-- occupancy_pct (1 decimal)
-- actual_rent_collected
-- delinquency
+From the rent roll or occupancy summary:
+- total_units: integer
+- occupied_units: integer
+- vacant_units: integer
+- occupancy_pct: decimal (e.g. 17.4)
+- actual_rent_collected: number
+- delinquency: number
 
-Return as single flat JSON object.`
+Return ONLY the JSON object.`
             }
           ]
         }]
@@ -90,21 +95,29 @@ Return as single flat JSON object.`
 
     const data = await response.json()
     const text = data.content?.[0]?.text || '{}'
-    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
-    console.log('Claude parsed:', JSON.stringify(parsed).substring(0, 500))
+    console.log('Claude response:', text.substring(0, 400))
 
-    // Detect project from subject/from
+    let parsed = {}
+    try {
+      parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
+    } catch (e) {
+      console.error('JSON parse error:', e.message, 'text was:', text.substring(0, 200))
+      return res.status(200).json({ success: false, error: 'Could not parse Claude response', raw: text.substring(0, 200) })
+    }
+
     const projectId = project_id || detectProject(subject, from)
 
-    if (projectId) {
+    if (projectId && parsed.period) {
       const snapshot = { project_id: projectId, ...parsed }
       const { error: dbErr } = await supabase
         .from('monthly_snapshots')
         .upsert(snapshot, { onConflict: 'project_id,period' })
       if (dbErr) console.error('Supabase error:', dbErr.message)
+      else console.log('Saved snapshot for period:', parsed.period)
+    } else {
+      console.log('No project or period — projectId:', projectId, 'period:', parsed.period)
     }
 
-    // Also save to email queue if from Power Automate
     if (from || subject) {
       await supabase.from('email_queue').insert({
         from_email: from || '',
@@ -112,17 +125,17 @@ Return as single flat JSON object.`
         sender_type: 'pm',
         detected_doc_type: 'pm-report',
         detected_project_id: projectId,
-        confidence: 'high',
+        confidence: parsed.period ? 'high' : 'low',
         extracted_data: parsed,
         attachments: [{ name: 'financials.pdf', contentType: 'application/pdf' }],
-        status: 'approved',
+        status: parsed.period ? 'approved' : 'pending',
       })
     }
 
     return res.status(200).json({ success: true, period: parsed.period, occupancy_pct: parsed.occupancy_pct, noi: parsed.noi })
 
   } catch (err) {
-    console.error('Parse financials error:', err)
+    console.error('Parse financials error:', err.message)
     return res.status(500).json({ error: err.message })
   }
 }
