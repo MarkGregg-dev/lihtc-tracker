@@ -877,6 +877,49 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
           )}
           <div style={{ fontSize: 14, fontWeight: 500, color: '#1a1a18', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{project.name}</div>
           <div style={{ fontSize: 12, color: '#6b6a63', marginTop: 2 }}>{project.city} · {project.units} units · {(project.ami || []).map(a => a + '% AMI').join(', ')}</div>
+          {/* Inline risk alerts — only show orange/red */}
+          {(() => {
+            const alerts = []
+            const draw = project.draw_data?.[0] || project.draw_data || null
+            const leasing = project.leasing_snapshots?.[0] || null
+            const MONTHLY_BOND_INTEREST = 117167
+            const interestRemaining = draw?.interest_remaining ?? 287384
+            const monthsLeft = interestRemaining / MONTHLY_BOND_INTEREST
+            if (monthsLeft <= 3) {
+              const sev = monthsLeft <= 1 ? '#E24B4A' : monthsLeft <= 2 ? '#BA7517' : '#BA7517'
+              const bg = monthsLeft <= 1 ? '#FCEBEB' : '#FEF3E2'
+              const label = monthsLeft <= 1 ? 'CRITICAL' : monthsLeft <= 2 ? 'HIGH' : 'WATCH'
+              alerts.push({ key: 'interest', color: sev, bg, label, text: `Interest reserve: ${monthsLeft.toFixed(1)} months left` })
+            }
+            if (project.stage === 'Lease-up' && leasing) {
+              const occupied = leasing.occupied || 0
+              const stabTarget = Math.floor((leasing.total_units || 363) * 0.9)
+              const unitsNeeded = stabTarget - occupied
+              const deadline = new Date('2027-06-30')
+              const monthsToDeadline = (deadline - new Date()) / (1000 * 60 * 60 * 24 * 30.5)
+              const requiredPace = unitsNeeded / monthsToDeadline
+              const currentPace = leasing.monthly_absorption || 22
+              const ratio = currentPace / requiredPace
+              if (ratio < 1.0) {
+                const sev = ratio < 0.85 ? '#E24B4A' : '#BA7517'
+                const bg = ratio < 0.85 ? '#FCEBEB' : '#FEF3E2'
+                const label = ratio < 0.85 ? 'CRITICAL' : 'WATCH'
+                alerts.push({ key: 'lease', color: sev, bg, label, text: `Lease-up: ${currentPace}/mo vs ${requiredPace.toFixed(0)}/mo needed` })
+              }
+            }
+            if (alerts.length === 0) return null
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginTop: 6, marginBottom: 2 }}>
+                {alerts.map(a => (
+                  <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 8px', background: a.bg, borderRadius: 6, fontSize: 10 }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
+                    <span style={{ fontWeight: 700, color: a.color }}>{a.label}</span>
+                    <span style={{ color: a.color }}>{a.text}</span>
+                  </div>
+                ))}
+              </div>
+            )
+          })()}
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: clr[project.alert] || clr.green, flexShrink: 0 }} />
             <span style={{ fontSize: 11, color: '#6b6a63' }}>{project.alert_msg}</span>
@@ -1294,7 +1337,6 @@ export default function App() {
       </div>
 
       {/* Risk alerts */}
-      <RiskAlertBar projects={projects} />
 
       {/* Edit modal */}
       {editing && <EditModal project={editing} onSave={() => { setEditing(null); load() }} onClose={() => setEditing(null)} />}
