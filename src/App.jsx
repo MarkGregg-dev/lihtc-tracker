@@ -6,6 +6,7 @@ import { DocsTab } from './components/DocsTab'
 import { BinsTab } from './components/BinsTab'
 import { LeaseUpTab } from './components/LeaseUpTab'
 import { SiteMapTab } from './components/SiteMapTab'
+import { EmailQueue } from './components/EmailQueue'
 import { CapitalTab } from './components/CapitalTab'
 
 // ── Project logos ────────────────────────────────────────────────────
