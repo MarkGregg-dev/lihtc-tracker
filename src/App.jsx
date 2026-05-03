@@ -1142,7 +1142,7 @@ function RiskAlertBar({ projects }) {
 
 // ── Main App ──────────────────────────────────────────────────────────
 export default function App() {
-  const [authed, setAuthed] = useState(() => sessionStorage.getItem('lihtc-auth') === 'true')
+  const [authed, setAuthed] = useState(true)
   const [authReady, setAuthReady] = useState(false)
   const [pw, setPw] = useState('')
   const [pwError, setPwError] = useState(false)
