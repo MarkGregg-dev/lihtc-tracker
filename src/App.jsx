@@ -1195,6 +1195,7 @@ export default function App() {
   const [filter, setFilter] = useState('all')
   const [editing, setEditing] = useState(null)
   const [emailQueueOpen, setEmailQueueOpen] = useState(false)
+  const [pendingEmailCount, setPendingEmailCount] = useState(0)
 
   async function load() {
     try {
@@ -1263,7 +1264,13 @@ export default function App() {
         </div>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          <button onClick={() => setEmailQueueOpen(true)} style={{ fontSize: 11, padding: '4px 12px', borderRadius: 100, border: '0.5px solid #e5e3db', background: '#eceae3', color: '#1a1a18', cursor: 'pointer', fontWeight: 500 }}>✉ Inbox</button>
+          <button onClick={() => setEmailQueueOpen(true)} style={{ fontSize: 11, padding: '4px 12px', borderRadius: 100, border: '0.5px solid #e5e3db', background: '#eceae3', color: '#1a1a18', cursor: 'pointer', fontWeight: 500, position: 'relative' }}>
+            ✉ Inbox
+            {projects && projects.some && (() => {
+              const pending = (window.__emailPendingCount || 0)
+              return pending > 0 ? <span style={{ position: 'absolute', top: -4, right: -4, background: '#E24B4A', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'pulse 1.5s infinite' }}>{pending}</span> : null
+            })()}
+          </button>
           {['all', 'Construction', 'Lease-up', 'Stabilized'].map(f => (
             <span key={f} onClick={() => setFilter(f)} style={{
               padding: '4px 12px', borderRadius: 100, fontSize: 12, cursor: 'pointer',
@@ -1313,7 +1320,7 @@ export default function App() {
               <button onClick={() => setEmailQueueOpen(false)} style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: '#6b6a63' }}>✕</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-              <EmailQueue projects={projects} />
+              <EmailQueue projects={projects} onPendingCount={setPendingEmailCount} />
             </div>
           </div>
         </>
