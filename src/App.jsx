@@ -922,10 +922,28 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
               </div>
             )
           })()}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: clr[project.alert] || clr.green, flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: '#6b6a63' }}>{project.alert_msg}</span>
-          </div>
+          {(() => {
+            const MONTHLY_BOND_INTEREST = 117167
+            const interestRemaining = draw?.interest_remaining ?? 287384
+            const monthsLeft = interestRemaining / MONTHLY_BOND_INTEREST
+            const leasingAlert = leasing ? (() => {
+              const stabTarget = Math.floor((leasing.total_units || 363) * 0.9)
+              const unitsNeeded = stabTarget - (leasing.occupied || 0)
+              const monthsToDeadline = (new Date('2027-06-30') - new Date()) / (1000 * 60 * 60 * 24 * 30.5)
+              const required = unitsNeeded / monthsToDeadline
+              return (leasing.monthly_absorption || 22) / required
+            })() : 1
+            const isRed = monthsLeft <= 1 || leasingAlert < 0.85
+            const dotColor = isRed ? '#E24B4A' : isAmber ? '#BA7517' : '#639922'
+            const msg = isRed || isAmber ? project.alert_msg : 'All systems OK'
+            const msgColor = isRed ? '#a32d2d' : isAmber ? '#633806' : '#27500A'
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: msgColor }}>{msg}</span>
+              </div>
+            )
+          })()}
         </div>
         <span style={{ ...stage, padding: '3px 9px', borderRadius: 100, fontSize: 11, fontWeight: 500, flexShrink: 0 }}>{project.stage}</span>
         <span style={{ fontSize: 11, color: '#8f8e87', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s', marginTop: 2 }}>▼</span>
