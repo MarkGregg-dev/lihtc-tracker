@@ -1262,7 +1262,8 @@ export default function App() {
           <span style={{ fontSize: 20, fontWeight: 500, color: '#1a1a18' }}>Development Dashboard</span>
         </div>
 
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button onClick={() => setEmailQueueOpen(true)} style={{ fontSize: 11, padding: '4px 12px', borderRadius: 100, border: '0.5px solid #e5e3db', background: '#eceae3', color: '#1a1a18', cursor: 'pointer', fontWeight: 500 }}>✉ Inbox</button>
           {['all', 'Construction', 'Lease-up', 'Stabilized'].map(f => (
             <span key={f} onClick={() => setFilter(f)} style={{
               padding: '4px 12px', borderRadius: 100, fontSize: 12, cursor: 'pointer',
