@@ -50,7 +50,7 @@ export function EmailQueue({ projects }) {
   const [filter, setFilter] = useState('pending')
   const [expanded, setExpanded] = useState(null)
   const [updating, setUpdating] = useState(null)
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   const [selected, setSelected] = useState(new Set())
 
   useEffect(() => {
