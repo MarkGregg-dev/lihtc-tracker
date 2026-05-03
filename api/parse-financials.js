@@ -1,8 +1,5 @@
-import { createClient } from '@supabase/supabase-js'
-import { Buffer } from 'buffer'
-import { createRequire } from 'module'
-
-const require = createRequire(import.meta.url)
+const { createClient } = require('@supabase/supabase-js')
+const pdfParse = require('pdf-parse')
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -23,9 +20,7 @@ function detectProject(subject, from) {
   return null
 }
 
-export const config = { api: { bodyParser: { sizeLimit: '50mb' } } }
-
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
@@ -34,20 +29,17 @@ export default async function handler(req, res) {
 
     console.log('base64 length:', base64.length, 'subject:', subject)
 
-    // Extract text from PDF using require to avoid ESM test file issue
     let pdfText = null
     try {
-      const pdfParse = require('pdf-parse')
       const buffer = Buffer.from(base64, 'base64')
       const data = await pdfParse(buffer, { max: 10 })
       pdfText = data.text
       console.log('PDF text length:', pdfText.length)
-      // Log the budget summary section
       const budgetIdx = pdfText.indexOf('Budget Comparison')
       if (budgetIdx > -1) {
-        console.log('Budget section found:', pdfText.substring(budgetIdx, budgetIdx + 500))
+        console.log('Budget section:', pdfText.substring(budgetIdx, budgetIdx + 400))
       } else {
-        console.log('Budget section NOT found. Text sample:', pdfText.substring(0, 400))
+        console.log('No budget section found. Sample:', pdfText.substring(0, 300))
       }
     } catch (err) {
       console.error('PDF parse error:', err.message)
@@ -68,9 +60,9 @@ export default async function handler(req, res) {
         max_tokens: 2000,
         messages: [{
           role: 'user',
-          content: `Extract financial data from this property management report text. Return ONLY a JSON object with no markdown.
+          content: `Extract financial data from this property management report. Return ONLY a JSON object.
 
-Look for "Period = " to find the report month. Look for "TOTAL OPERATING INCOME", "TOTAL OPERATING EXPENSES", "NET OPERATING INCOME" for PTD Actual values.
+Look for "Period = " to find the month. Find PTD Actual column values.
 
 TEXT:
 ${textToSend}
@@ -107,20 +99,6 @@ Return JSON with:
         .upsert({ project_id: projectId, ...parsed }, { onConflict: 'project_id,period' })
       if (dbErr) console.error('Supabase error:', dbErr.message)
       else console.log('Saved snapshot:', parsed.period)
-    }
-
-    if (from || subject) {
-      await supabase.from('email_queue').insert({
-        from_email: from || '',
-        subject: subject || '',
-        sender_type: 'pm',
-        detected_doc_type: 'pm-report',
-        detected_project_id: projectId,
-        confidence: parsed.period ? 'high' : 'low',
-        extracted_data: parsed,
-        attachments: [{ name: 'financials.pdf', contentType: 'application/pdf' }],
-        status: parsed.period ? 'approved' : 'pending',
-      })
     }
 
     return res.status(200).json({ success: true, period: parsed.period, noi: parsed.noi, occupancy_pct: parsed.occupancy_pct })
