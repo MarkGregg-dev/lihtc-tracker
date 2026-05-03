@@ -17,7 +17,7 @@ export function Bar({ value, max = 100, color = '#378ADD', height = 6 }) {
 
 export function Kpi({ label, value, sub, warn }) {
   return (
-    <div style={{ background: '#eceae3', borderRadius: s.radius, padding: '.8rem 1rem' }}>
+    <div style={{ background: '#eceae3', borderRadius: s.radius, padding: '.8rem 1rem', textAlign: 'center' }}>
       <div style={{ fontSize: 11, color: '#6b6a63', marginBottom: 3 }}>{label}</div>
       <div style={{ fontSize: 20, fontWeight: 500, color: warn ? '#a32d2d' : '#1a1a18', lineHeight: 1.1 }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: '#8f8e87', marginTop: 2 }}>{sub}</div>}
