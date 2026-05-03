@@ -969,8 +969,6 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
           {tab === 'lpa' && <LpaTab lpa={lpa} />}
           {tab === 'bins' && <BinsTab project={project} />}
           {tab === 'credit' && <CreditDeliveryTab project={project} />}
-          {tab === 'credit' && <CreditDeliveryTab project={project} />}
-          {tab === 'credit' && <CreditDeliveryTab project={project} />}
           {tab === 'leaseup' && <LeaseUpTab project={project} />}
           {tab === 'sitemap' && <SiteMapTab project={project} />}
           {tab === 'capital' && <CapitalTab project={project} />}
