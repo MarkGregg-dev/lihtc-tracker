@@ -153,6 +153,7 @@ function CapitalSufficiency({ d, leasing }) {
       </div>
       <div style={{ fontSize: 10, color: '#8f8e87', textAlign: 'center' }}>Red = operating deficit · Green = positive NOI · Adjust inputs above to model different scenarios</div>
     </div>
+      </div>
   )
 }
 
@@ -869,6 +870,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
 
   return (
     <div style={{ background: '#fff', border: open ? '0.5px solid #888780' : S.border, borderRadius: S.radiusLg, padding: '1rem 1.25rem', transition: 'border-color .15s' }}>
+      <div style={{ filter: dark ? 'invert(1) hue-rotate(180deg)' : 'none', minHeight: '100vh', background: dark ? '#0f0f0e' : '#f5f4f0', transition: 'background 0.2s' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
         <div style={{ flex: 1, minWidth: 0 }}>
