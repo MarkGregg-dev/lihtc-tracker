@@ -172,7 +172,64 @@ export function CreditDeliveryTab({ project }) {
               sub={daysStab + ' days remaining'} warn={daysStab < 180} />
           </div>
 
-          {/* Risk summary */}
+          {/* Building focus strategy */}
+      <div style={{ border: S.border, borderRadius: S.radius, padding: '12px 14px', marginBottom: 14, background: '#fff' }}>
+        <div style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18', marginBottom: 8 }}>Building focus strategy — maximize credit delivery</div>
+        <div style={{ fontSize: 11, color: '#6b6a63', marginBottom: 10, lineHeight: 1.5 }}>
+          To maximize FY2026 credit delivery, concentrate leasing in one building at a time until it hits 100% occupancy. A fully leased building has applicable fraction = 1.0, generating maximum credits. Splitting leases across buildings reduces every building's applicable fraction.
+        </div>
+        {(() => {
+          // Find best buildings to focus on — PIS buildings with lowest occupancy first
+          const pisBldgs = buildings.filter(b => b.pis_date && new Date(b.pis_date) <= new Date('2026-12-31'))
+          const totalOcc = currentOccupied
+          const totalUnitsAll = buildings.reduce((a, b) => a + b.total_units, 0)
+          // Estimate current occupancy per building proportionally
+          const bldgsWithOcc = pisBldgs.map((b, i) => {
+            const estOcc = Math.round(totalOcc * b.total_units / totalUnitsAll)
+            const needed = b.total_units - estOcc
+            const monthsToFill = leasePace > 0 ? (needed / leasePace).toFixed(1) : '—'
+            const fullYrIdx = buildings.findIndex(x => x.id === b.id)
+            const credits = BLDG_CREDITS[fullYrIdx] || 0
+            return { ...b, estOcc, needed, monthsToFill, credits }
+          }).sort((a, b) => a.needed - b.needed)
+
+          const focusBldg = bldgsWithOcc[0]
+          if (!focusBldg) return <div style={{ fontSize: 11, color: '#8f8e87' }}>No buildings placed in service yet.</div>
+
+          return (
+            <div>
+              <div style={{ background: '#EAF3DE', border: '0.5px solid #C0DD97', borderRadius: S.radius, padding: '10px 12px', marginBottom: 8 }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#27500A', marginBottom: 2 }}>
+                  Priority: Building {focusBldg.building} ({focusBldg.bin})
+                </div>
+                <div style={{ fontSize: 11, color: '#3B6D11' }}>
+                  {focusBldg.estOcc}/{focusBldg.total_units} units occupied · {focusBldg.needed} units to fill · ~{focusBldg.monthsToFill} months at current pace · {fm(focusBldg.credits)}/yr when full
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 8 }}>
+                {bldgsWithOcc.slice(0, 6).map((b, i) => {
+                  const pct = Math.round(b.estOcc / b.total_units * 100)
+                  const color = pct >= 90 ? '#27500A' : pct >= 50 ? '#633806' : '#a32d2d'
+                  const bg = pct >= 90 ? '#EAF3DE' : pct >= 50 ? '#FAEEDA' : '#FCEBEB'
+                  return (
+                    <div key={b.id} style={{ background: bg, border: `0.5px solid ${pct >= 90 ? '#C0DD97' : pct >= 50 ? '#FAC775' : '#F09595'}`, borderRadius: 6, padding: '8px 10px' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, color, marginBottom: 2 }}>Building {b.building}{i === 0 ? ' ← Focus' : ''}</div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color }}>{pct}%</div>
+                      <div style={{ height: 4, background: 'rgba(0,0,0,0.1)', borderRadius: 2, margin: '4px 0' }}>
+                        <div style={{ width: pct + '%', height: '100%', background: color, borderRadius: 2 }} />
+                      </div>
+                      <div style={{ fontSize: 10, color }}>{b.estOcc}/{b.total_units} · {b.needed} to fill</div>
+                      <div style={{ fontSize: 9, color, marginTop: 2 }}>{fm(b.credits)}/yr at full occ</div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
+      </div>
+
+      {/* Risk summary */}
           {[
             miss2025 > 0 && { sev: 'red', title: `${miss2025} building(s) may have missed 2025 bonus depreciation deadline`, body: 'Dec 31, 2025 has passed. If 2 buildings were not placed in service, AHF will calculate a Downward Bonus Depreciation Adjustor reducing the 4th Capital Contribution ($600K). Get your accountants to estimate the exposure now.' },
             miss2026 > 0 && { sev: 'red', title: `${miss2026} building(s) still need PIS by Dec 31, 2026`, body: 'Missing this date triggers the Repurchase Put — AHF can require SLP to buy back all contributed capital at Prime+2% or 10% interest. Non-negotiable deadline.' },
