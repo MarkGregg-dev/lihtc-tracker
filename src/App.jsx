@@ -1194,6 +1194,7 @@ export default function App() {
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all')
   const [editing, setEditing] = useState(null)
+  const [emailQueueOpen, setEmailQueueOpen] = useState(false)
 
   async function load() {
     try {
@@ -1257,7 +1258,9 @@ export default function App() {
     <div style={{ maxWidth: 1400, margin: '0 auto', padding: '1.5rem 2rem 4rem', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 20, fontWeight: 500, color: '#1a1a18' }}>Development Dashboard</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20, fontWeight: 500, color: '#1a1a18' }}>Development Dashboard</span>
+        </div>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['all', 'Construction', 'Lease-up', 'Stabilized'].map(f => (
