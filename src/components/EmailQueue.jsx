@@ -51,6 +51,7 @@ export function EmailQueue({ projects }) {
   const [expanded, setExpanded] = useState(null)
   const [updating, setUpdating] = useState(null)
   const [collapsed, setCollapsed] = useState(false)
+  const [selected, setSelected] = useState(new Set())
 
   useEffect(() => {
     loadQueue()
@@ -79,6 +80,36 @@ export function EmailQueue({ projects }) {
       .eq('id', id)
     await loadQueue()
     setUpdating(null)
+  }
+
+  async function bulkAction(action) {
+    if (selected.size === 0) return
+    const ids = [...selected]
+    if (action === 'delete') {
+      if (!confirm('Delete ' + ids.length + ' email(s)? This cannot be undone.')) return
+      await supabase.from('email_queue').delete().in('id', ids)
+    } else {
+      await supabase.from('email_queue').update({ status: action, reviewed_at: new Date().toISOString() }).in('id', ids)
+    }
+    setSelected(new Set())
+    await loadQueue()
+  }
+
+  function toggleSelect(id) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function selectAll() {
+    if (selected.size === filtered.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(filtered.map(i => i.id)))
+    }
   }
 
   function getProjectName(projectId) {
@@ -133,6 +164,21 @@ export function EmailQueue({ projects }) {
         ))}
       </div>
 
+      {/* Bulk actions */}
+      {filtered.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, padding: '8px 12px', background: '#eceae3', borderRadius: 8 }}>
+          <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={selectAll} style={{ cursor: 'pointer' }} />
+          <span style={{ fontSize: 11, color: '#6b6a63' }}>{selected.size > 0 ? selected.size + ' selected' : 'Select all'}</span>
+          {selected.size > 0 && (
+            <>
+              <button onClick={() => bulkAction('approved')} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: 'none', background: '#27500A', color: '#fff', cursor: 'pointer' }}>Approve</button>
+              <button onClick={() => bulkAction('rejected')} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '0.5px solid #e5e3db', background: '#fff', color: '#6b6a63', cursor: 'pointer' }}>Reject</button>
+              <button onClick={() => bulkAction('delete')} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: 'none', background: '#a32d2d', color: '#fff', cursor: 'pointer' }}>Delete</button>
+            </>
+          )}
+        </div>
+      )}
+
       {loading && <div style={{ fontSize: 12, color: '#8f8e87', padding: '20px 0' }}>Loading queue...</div>}
 
       {!loading && filtered.length === 0 && (
@@ -182,6 +228,8 @@ export function EmailQueue({ projects }) {
                   <span style={{ background: statusColor.bg, color: statusColor.color, fontSize: 10, fontWeight: 500, padding: '2px 8px', borderRadius: 100 }}>{statusColor.label}</span>
                   <span style={{ fontSize: 10, color: '#8f8e87' }}>{isExpanded ? '▲' : '▼'}</span>
                 </div>
+                </div>
+                <button onClick={async e => { e.stopPropagation(); if(confirm('Delete this email?')) { await supabase.from('email_queue').delete().eq('id', item.id); loadQueue() } }} style={{ fontSize: 10, color: '#a32d2d', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, padding: '0 4px' }}>✕</button>
               </div>
 
               {/* Expanded detail */}
