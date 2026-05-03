@@ -8,6 +8,7 @@ import { LeaseUpTab } from './components/LeaseUpTab'
 import { SiteMapTab } from './components/SiteMapTab'
 import { EmailQueue } from './components/EmailQueue'
 import { CapitalTab } from './components/CapitalTab'
+import { PerformanceTab } from './components/PerformanceTab'
 
 // ── Project logos ────────────────────────────────────────────────────
 const PROJECT_LOGOS = {
@@ -861,6 +862,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
     { id: 'leaseup', label: 'Lease-up intel' },
     { id: 'sitemap', label: 'Site map' },
     { id: 'capital', label: 'Capital sufficiency' },
+    { id: 'performance', label: 'Performance' },
     { id: 'docs', label: 'Documents' },
     { id: 'info', label: 'Info' },
   ]
@@ -916,6 +918,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
           {tab === 'leaseup' && <LeaseUpTab project={project} />}
           {tab === 'sitemap' && <SiteMapTab project={project} />}
           {tab === 'capital' && <CapitalTab project={project} />}
+          {tab === 'performance' && <PerformanceTab project={project} />}
           {tab === 'docs' && <DocsTab project={project} />}
           {tab === 'info' && (
             <div>
