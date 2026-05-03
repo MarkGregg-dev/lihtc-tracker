@@ -1,5 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { Buffer } from 'buffer'
+import { createRequire } from 'module'
+
+const require = createRequire(import.meta.url)
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -20,16 +23,6 @@ function detectProject(subject, from) {
   return null
 }
 
-function cleanPdfText(raw) {
-  // Fix spaced-out characters like "M O N T H L Y" -> "MONTHLY"
-  // Replace single chars separated by spaces
-  let text = raw
-  // Fix letter-by-letter spacing
-  text = text.replace(/([A-Z]) ([A-Z]) ([A-Z])/g, '$1$2$3')
-  text = text.replace(/([A-Z]) ([A-Z])/g, '$1$2')
-  return text
-}
-
 export const config = { api: { bodyParser: { sizeLimit: '50mb' } } }
 
 export default async function handler(req, res) {
@@ -41,21 +34,27 @@ export default async function handler(req, res) {
 
     console.log('base64 length:', base64.length, 'subject:', subject)
 
-    // Extract text using pdf-parse
+    // Extract text from PDF using require to avoid ESM test file issue
     let pdfText = null
     try {
-      const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js')
+      const pdfParse = require('pdf-parse')
       const buffer = Buffer.from(base64, 'base64')
       const data = await pdfParse(buffer, { max: 10 })
-      pdfText = cleanPdfText(data.text)
+      pdfText = data.text
       console.log('PDF text length:', pdfText.length)
-      console.log('PDF text sample:', pdfText.substring(200, 600))
+      // Log the budget summary section
+      const budgetIdx = pdfText.indexOf('Budget Comparison')
+      if (budgetIdx > -1) {
+        console.log('Budget section found:', pdfText.substring(budgetIdx, budgetIdx + 500))
+      } else {
+        console.log('Budget section NOT found. Text sample:', pdfText.substring(0, 400))
+      }
     } catch (err) {
       console.error('PDF parse error:', err.message)
       return res.status(200).json({ success: false, error: 'PDF extraction failed: ' + err.message })
     }
 
-    const textToSend = pdfText.substring(0, 12000)
+    const textToSend = pdfText.substring(0, 15000)
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -69,34 +68,20 @@ export default async function handler(req, res) {
         max_tokens: 2000,
         messages: [{
           role: 'user',
-          content: `Extract financial data from this property management report text. The text may have some formatting artifacts. Look for the Budget Comparison Summary section with PTD Actual values.
+          content: `Extract financial data from this property management report text. Return ONLY a JSON object with no markdown.
 
-Return ONLY a JSON object with these fields:
-- period: "YYYY-MM" (look for "Period = " followed by month/year)
-- period_date: "YYYY-MM-01"
-- gross_potential_rent: (GROSS POTENTIAL RENT PTD Actual value)
-- vacancy_loss: (VACANCY LOSS PTD Actual, negative)
-- concessions: (CONCESSIONS PTD Actual, negative)
-- net_rental_income: (Net Rental Income PTD Actual)
-- other_income: (OTHER OPERATING INCOME PTD Actual)
-- total_operating_income: (TOTAL OPERATING INCOME PTD Actual)
-- salaries_benefits: (SALARIES and BENEFITS PTD Actual, negative)
-- repairs_maintenance: (RPRS and MAINTENANCE PTD Actual, negative)
-- contract_services: (CONTRACT SVCS PTD Actual, negative)
-- utilities: (UTILITIES EXPENSES PTD Actual, negative)
-- general_admin: (GENERAL AND ADMIN PTD Actual, negative)
-- leasing: (LEASING PTD Actual, negative)
-- management_fee: (MANAGEMENT FEES PTD Actual, negative)
-- total_operating_expenses: (TOTAL OPERATING EXPENSES PTD Actual, negative)
-- noi: (NET OPERATING INCOME PTD Actual)
-- ptd_budget_income: (TOTAL OPERATING INCOME PTD Budget)
-- ptd_budget_expenses: (TOTAL OPERATING EXPENSES PTD Budget, negative)
-- ptd_budget_noi: (NET OPERATING INCOME PTD Budget)
+Look for "Period = " to find the report month. Look for "TOTAL OPERATING INCOME", "TOTAL OPERATING EXPENSES", "NET OPERATING INCOME" for PTD Actual values.
 
 TEXT:
 ${textToSend}
 
-Return ONLY the JSON.`
+Return JSON with:
+- period: "YYYY-MM"
+- period_date: "YYYY-MM-01"
+- gross_potential_rent, vacancy_loss (neg), concessions (neg), net_rental_income, other_income, total_operating_income
+- salaries_benefits (neg), repairs_maintenance (neg), contract_services (neg), utilities (neg), general_admin (neg), leasing (neg), management_fee (neg), total_operating_expenses (neg)
+- noi, ptd_budget_income, ptd_budget_expenses (neg), ptd_budget_noi
+- total_units, occupied_units, vacant_units, occupancy_pct, actual_rent_collected, delinquency`
         }]
       })
     })
@@ -109,7 +94,7 @@ Return ONLY the JSON.`
     try {
       parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
     } catch (e) {
-      console.error('JSON parse error:', e.message, 'raw:', text.substring(0, 300))
+      console.error('JSON parse error:', e.message)
       return res.status(200).json({ success: false, error: 'JSON parse failed', raw: text.substring(0, 300) })
     }
 
@@ -138,7 +123,7 @@ Return ONLY the JSON.`
       })
     }
 
-    return res.status(200).json({ success: true, period: parsed.period, noi: parsed.noi })
+    return res.status(200).json({ success: true, period: parsed.period, noi: parsed.noi, occupancy_pct: parsed.occupancy_pct })
 
   } catch (err) {
     console.error('Handler error:', err.message)
