@@ -142,7 +142,7 @@ export function EmailQueue({ projects }) {
         </div>
       </div>
 
-      {collapsed ? null : <>
+      <div style={{ display: collapsed ? 'none' : 'block' }}>
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -323,8 +323,7 @@ export function EmailQueue({ projects }) {
           )
         })}
       </div>
-      </>
-      }
+      </div>
     </div>
   )
 }
