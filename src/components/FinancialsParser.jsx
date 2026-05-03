@@ -15,7 +15,6 @@ export function FinancialsParser({ projectId, onParsed }) {
     setResult(null)
 
     try {
-      // Send to Claude API to parse the PDF
       const base64 = await new Promise((res, rej) => {
         const r = new FileReader()
         r.onload = () => res(r.result.split(',')[1])
@@ -28,7 +27,7 @@ export function FinancialsParser({ projectId, onParsed }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
+          max_tokens: 2000,
           messages: [{
             role: 'user',
             content: [
@@ -38,33 +37,41 @@ export function FinancialsParser({ projectId, onParsed }) {
               },
               {
                 type: 'text',
-                text: `Extract the Budget Comparison Summary from this property management report. Find the PTD (Period to Date) Actual column values for the most recent period.
+                text: `This is a monthly property management report. Extract the following data and return ONLY a JSON object with no markdown or explanation.
 
-Extract these exact fields and return ONLY a JSON object:
-{
-  "period": "YYYY-MM (e.g. 2026-03)",
-  "period_date": "YYYY-MM-01",
-  "gross_potential_rent": number,
-  "vacancy_loss": number (negative),
-  "concessions": number (negative),
-  "net_rental_income": number,
-  "other_income": number,
-  "total_operating_income": number,
-  "salaries_benefits": number (negative),
-  "repairs_maintenance": number (negative),
-  "contract_services": number (negative),
-  "utilities": number (negative),
-  "general_admin": number (negative),
-  "leasing": number (negative),
-  "management_fee": number (negative),
-  "total_operating_expenses": number (negative),
-  "noi": number,
-  "ptd_budget_income": number,
-  "ptd_budget_expenses": number,
-  "ptd_budget_noi": number
-}
+From the "Budget Comparison Summary" (PTD Actual column):
+- period: format as "YYYY-MM"
+- period_date: format as "YYYY-MM-01"
+- gross_potential_rent
+- vacancy_loss (negative number)
+- concessions (negative number)
+- net_rental_income
+- other_income
+- total_operating_income
+- salaries_benefits (negative)
+- repairs_maintenance (negative)
+- contract_services (negative)
+- utilities (negative)
+- general_admin (negative)
+- leasing (negative)
+- management_fee (negative)
+- total_operating_expenses (negative)
+- noi (total_operating_income + total_operating_expenses)
+- ptd_budget_income (PTD Budget column - total operating income)
+- ptd_budget_expenses (PTD Budget column - total operating expenses)
+- ptd_budget_noi
 
-No markdown, no explanation, just the JSON.`
+From the "Affordable Gross Potential Rent" section (rent roll):
+- total_units: count all units listed
+- occupied_units: count units where resident is NOT "VACANT"
+- vacant_units: count VACANT units
+- occupancy_pct: occupied/total * 100 rounded to 1 decimal
+- actual_rent_collected: sum of "Actual Rent" column for occupied units
+- delinquency: sum of "Current Unpaid Charges" column
+
+Also extract building-level occupancy as building_data object where keys are building numbers and values have total, occupied, actualRent fields.
+
+Return all as a single flat JSON object.`
               }
             ]
           }]
@@ -74,6 +81,11 @@ No markdown, no explanation, just the JSON.`
       const data = await response.json()
       const text = data.content?.[0]?.text || '{}'
       const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
+
+      // Calculate vacancy_loss from gross potential if not provided
+      if (!parsed.vacancy_loss && parsed.gross_potential_rent && parsed.actual_rent_collected) {
+        parsed.vacancy_loss = -(parsed.gross_potential_rent - parsed.actual_rent_collected)
+      }
 
       const snapshot = {
         project_id: projectId,
@@ -99,26 +111,38 @@ No markdown, no explanation, just the JSON.`
 
   return (
     <div style={{ background: '#eceae3', borderRadius: 8, padding: '12px 14px', marginBottom: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18', marginBottom: 4 }}>Upload PM financials</div>
-      <div style={{ fontSize: 11, color: '#6b6a63', marginBottom: 8 }}>Monthly PDF report from Sandalwood — extracts P&L, NOI, and budget variance automatically.</div>
+      <div style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18', marginBottom: 4 }}>Upload Sandalwood monthly report</div>
+      <div style={{ fontSize: 11, color: '#6b6a63', marginBottom: 8 }}>
+        Upload the monthly PDF from Sandalwood — extracts P&L, NOI, budget variance, occupancy, and building breakdown all at once. Takes ~20 seconds.
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <input ref={fileRef} type="file" accept=".pdf" onChange={handleFile} disabled={parsing} style={{ fontSize: 12 }} />
-        {parsing && <span style={{ fontSize: 12, color: '#633806' }}>Parsing financials (this takes ~15 seconds)...</span>}
+        {parsing && <span style={{ fontSize: 12, color: '#633806' }}>Reading report with Claude (~20 seconds)...</span>}
       </div>
-      {error && <div style={{ marginTop: 8, padding: '6px 10px', background: '#FCEBEB', borderRadius: 6, fontSize: 11, color: '#a32d2d' }}>Error: {error}</div>}
+      {error && (
+        <div style={{ marginTop: 8, padding: '6px 10px', background: '#FCEBEB', borderRadius: 6, fontSize: 11, color: '#a32d2d' }}>
+          Error: {error}
+        </div>
+      )}
       {result && (
         <div style={{ marginTop: 8, padding: '8px 12px', background: '#EAF3DE', borderRadius: 6 }}>
-          <div style={{ fontSize: 12, fontWeight: 500, color: '#27500A', marginBottom: 4 }}>Parsed {result.period}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 6 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: '#27500A', marginBottom: 6 }}>
+            Parsed {result.period} — {result.occupancy_pct}% occupied ({result.occupied_units}/{result.total_units} units)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 6 }}>
             {[
               ['Total income', result.total_operating_income],
               ['Total expenses', result.total_operating_expenses],
               ['NOI', result.noi],
-              ['Budget NOI', result.ptd_budget_noi],
+              ['Actual rent', result.actual_rent_collected],
+              ['Vacancy loss', result.vacancy_loss],
+              ['Delinquency', result.delinquency],
             ].map(([label, val]) => (
               <div key={label} style={{ fontSize: 11, color: '#27500A' }}>
                 <span style={{ color: '#6b6a63' }}>{label}: </span>
-                <strong style={{ color: val < 0 ? '#a32d2d' : '#27500A' }}>${val != null ? Math.round(Math.abs(val)).toLocaleString() : '—'}</strong>
+                <strong style={{ color: val < 0 ? '#a32d2d' : '#27500A' }}>
+                  {val != null ? '$' + Math.abs(Math.round(val)).toLocaleString() : '—'}
+                </strong>
               </div>
             ))}
           </div>

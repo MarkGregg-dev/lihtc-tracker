@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { SectionLabel, Kpi } from './ui'
-import { RentRollParser } from './RentRollParser'
 import { FinancialsParser } from './FinancialsParser'
 
 const S = { border: '0.5px solid #e5e3db', radius: '8px' }
@@ -91,11 +90,8 @@ export function PerformanceTab({ project }) {
 
   return (
     <div>
-      {/* Upload parsers */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <RentRollParser projectId={project?.id} onParsed={loadSnapshots} />
-        <FinancialsParser projectId={project?.id} onParsed={loadSnapshots} />
-      </div>
+      {/* Upload parser */}
+      <FinancialsParser projectId={project?.id} onParsed={loadSnapshots} />
 
       {snapshots.length === 0 && (
         <div style={{ textAlign: 'center', padding: '40px 0', fontSize: 13, color: '#8f8e87' }}>
