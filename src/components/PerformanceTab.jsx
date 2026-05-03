@@ -84,7 +84,7 @@ export function PerformanceTab({ project }) {
 
   function chartData(field, format) {
     return snapshots.slice(-6).map(s => ({
-      label: s.period ? s.period.substring(2) : '',
+      label: s.period ? (() => { const [y,m] = s.period.split('-'); const d = new Date(parseInt(y), parseInt(m)-1); return d.toLocaleDateString('en-US',{month:'short'}) + ' ' + String(y).slice(2) })() : '',
       value: s[field] || 0,
     }))
   }
