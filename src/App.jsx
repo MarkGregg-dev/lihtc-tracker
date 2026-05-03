@@ -1145,6 +1145,11 @@ function RiskAlertBar({ projects }) {
 
 // ── Main App ──────────────────────────────────────────────────────────
 export default function App() {
+  const [dark, setDark] = useState(() => localStorage.getItem('dark') !== 'false')
+  useEffect(() => {
+    document.body.classList.toggle('dark', dark)
+    localStorage.setItem('dark', dark)
+  }, [dark])
   const [authed, setAuthed] = useState(true)
   const [authReady, setAuthReady] = useState(false)
   const [pw, setPw] = useState('')
