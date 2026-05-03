@@ -47,9 +47,10 @@ function timeAgo(dateStr) {
 export function EmailQueue({ projects }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState('pending')
   const [expanded, setExpanded] = useState(null)
   const [updating, setUpdating] = useState(null)
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     loadQueue()
@@ -91,25 +92,26 @@ export function EmailQueue({ projects }) {
 
   return (
     <div>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#1a1a18' }}>
-            Email Queue
-            {pendingCount > 0 && (
-              <span style={{ marginLeft: 8, background: '#FCEBEB', color: '#791F1F', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>
-                {pendingCount} pending
-              </span>
-            )}
-          </div>
-          <div style={{ fontSize: 11, color: '#6b6a63', marginTop: 2 }}>
-            Emails received at draws@streamlineap.com — reviewed and approved before updating the dashboard
-          </div>
+      {/* Header — always visible */}
+      <div onClick={() => setCollapsed(c => !c)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: collapsed ? 0 : 12, cursor: 'pointer', userSelect: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1a18' }}>Email Queue</span>
+          {pendingCount > 0 && (
+            <span style={{ background: '#FCEBEB', color: '#791F1F', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 100 }}>
+              {pendingCount} pending
+            </span>
+          )}
+          <span style={{ fontSize: 11, color: '#8f8e87' }}>{items.length} total</span>
         </div>
-        <button onClick={loadQueue} style={{ fontSize: 11, color: '#185FA5', background: 'none', border: '0.5px solid #e5e3db', borderRadius: 6, padding: '5px 12px', cursor: 'pointer' }}>
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button onClick={e => { e.stopPropagation(); loadQueue() }} style={{ fontSize: 11, color: '#185FA5', background: 'none', border: '0.5px solid #e5e3db', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
+            Refresh
+          </button>
+          <span style={{ fontSize: 11, color: '#8f8e87', transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform .2s' }}>▼</span>
+        </div>
       </div>
+
+      {collapsed ? null : <>
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -273,6 +275,8 @@ export function EmailQueue({ projects }) {
           )
         })}
       </div>
+      </>
+      }
     </div>
   )
 }
