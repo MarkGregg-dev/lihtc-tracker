@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     // Extract text using pdf-parse
     let pdfText = null
     try {
-      const pdfParse = (await import('pdf-parse')).default
+      const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js')
       const buffer = Buffer.from(base64, 'base64')
       const data = await pdfParse(buffer, { max: 10 })
       pdfText = cleanPdfText(data.text)
