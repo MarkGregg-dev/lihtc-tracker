@@ -228,7 +228,6 @@ export function EmailQueue({ projects }) {
                   <span style={{ background: statusColor.bg, color: statusColor.color, fontSize: 10, fontWeight: 500, padding: '2px 8px', borderRadius: 100 }}>{statusColor.label}</span>
                   <span style={{ fontSize: 10, color: '#8f8e87' }}>{isExpanded ? '▲' : '▼'}</span>
                 </div>
-                </div>
                 <button onClick={async e => { e.stopPropagation(); if(confirm('Delete this email?')) { await supabase.from('email_queue').delete().eq('id', item.id); loadQueue() } }} style={{ fontSize: 10, color: '#a32d2d', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, padding: '0 4px' }}>✕</button>
               </div>
 
