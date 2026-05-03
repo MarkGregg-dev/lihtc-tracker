@@ -861,8 +861,6 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
     { id: 'lpa', label: 'LPA compliance' },
     { id: 'bins', label: 'BINs & buildings' },
     { id: 'credit', label: 'Credit delivery' },
-    { id: 'credit', label: 'Credit delivery' },
-    { id: 'credit', label: 'Credit delivery' },
     { id: 'leaseup', label: 'Lease-up intel' },
     { id: 'sitemap', label: 'Site map' },
     { id: 'capital', label: 'Capital sufficiency' },
