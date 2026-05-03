@@ -16,7 +16,7 @@ function MiniChart({ data, color, height = 50, label }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height }}>
         {data.map((d, i) => {
           const h = Math.max(2, Math.round((Math.abs(d.value) - min) / range * (height - 10)))
           return (
@@ -26,9 +26,12 @@ function MiniChart({ data, color, height = 50, label }) {
           )
         })}
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 3 }}>
-        <span style={{ fontSize: 8, color: '#8f8e87' }}>{data[0]?.label}</span>
-        <span style={{ fontSize: 8, color: '#8f8e87' }}>{data[data.length - 1]?.label}</span>
+      <div style={{ display: 'flex', marginTop: 4 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex: 1, textAlign: 'center', fontSize: 8, color: '#8f8e87', lineHeight: 1.2 }}>
+            {d.label.split(' ').map((part, j) => <div key={j}>{part}</div>)}
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -81,7 +84,7 @@ export function PerformanceTab({ project }) {
 
   function chartData(field, format) {
     return snapshots.slice(-6).map(s => ({
-      label: s.period ? (() => { const [y,m] = s.period.split('-'); return new Date(y,m-1).toLocaleDateString('en-US',{month:'short',year:'numeric'}) })() : '',
+      label: s.period ? s.period.substring(2) : '',
       value: s[field] || 0,
     }))
   }
