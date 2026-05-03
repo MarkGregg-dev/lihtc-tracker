@@ -90,6 +90,7 @@ Return as single flat JSON object.`
     const data = await response.json()
     const text = data.content?.[0]?.text || '{}'
     const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
+    console.log('Claude parsed:', JSON.stringify(parsed).substring(0, 500))
 
     // Detect project from subject/from
     const projectId = project_id || detectProject(subject, from)
