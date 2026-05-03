@@ -154,7 +154,6 @@ export function BinsTab({ project }) {
         </div>
       )}
 
-      {/* Gantt timeline */}
       <SectionLabel mt={0}>BIN delivery timeline</SectionLabel>
       <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 14 }}>
         {/* Header */}
