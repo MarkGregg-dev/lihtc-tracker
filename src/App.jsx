@@ -5,6 +5,8 @@ import { Bar, Kpi, SectionLabel, TabBar, Card, Btn } from './components/ui'
 import { DocsTab } from './components/DocsTab'
 import { BinsTab } from './components/BinsTab'
 import { CreditDeliveryTab } from './components/CreditDeliveryTab'
+import { CreditDeliveryTab } from './components/CreditDeliveryTab'
+import { CreditDeliveryTab } from './components/CreditDeliveryTab'
 import { LeaseUpTab } from './components/LeaseUpTab'
 import { SiteMapTab } from './components/SiteMapTab'
 import { EmailQueue } from './components/EmailQueue'
@@ -861,6 +863,8 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
     { id: 'lpa', label: 'LPA compliance' },
     { id: 'bins', label: 'BINs & buildings' },
     { id: 'credit', label: 'Credit delivery' },
+    { id: 'credit', label: 'Credit delivery' },
+    { id: 'credit', label: 'Credit delivery' },
     { id: 'leaseup', label: 'Lease-up intel' },
     { id: 'sitemap', label: 'Site map' },
     { id: 'capital', label: 'Capital sufficiency' },
@@ -968,6 +972,8 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
           {tab === 'leasing' && <LeasingTab l={leasing} />}
           {tab === 'lpa' && <LpaTab lpa={lpa} />}
           {tab === 'bins' && <BinsTab project={project} />}
+          {tab === 'credit' && <CreditDeliveryTab project={project} />}
+          {tab === 'credit' && <CreditDeliveryTab project={project} />}
           {tab === 'credit' && <CreditDeliveryTab project={project} />}
           {tab === 'leaseup' && <LeaseUpTab project={project} />}
           {tab === 'sitemap' && <SiteMapTab project={project} />}

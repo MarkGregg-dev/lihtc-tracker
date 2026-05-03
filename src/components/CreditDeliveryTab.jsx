@@ -1,25 +1,4 @@
-python3 << 'EOF'
-c = open('src/App.jsx').read()
-
-# Add import
-old = "import { BinsTab } from './components/BinsTab'"
-new = "import { BinsTab } from './components/BinsTab'\nimport { CreditDeliveryTab } from './components/CreditDeliveryTab'"
-c = c.replace(old, new, 1)
-
-# Add tab
-old = "{ id: 'bins', label: 'BINs & buildings' },"
-new = "{ id: 'bins', label: 'BINs & buildings' },\n    { id: 'credit', label: 'Credit delivery' },"
-c = c.replace(old, new, 1)
-
-# Add render
-old = "{tab === 'bins' && <BinsTab project={project} />}"
-new = "{tab === 'bins' && <BinsTab project={project} />}\n          {tab === 'credit' && <CreditDeliveryTab project={project} />}"
-c = c.replace(old, new, 1)
-
-open('src/App.jsx', 'w').write(c)
-print('Done:', 'CreditDeliveryTab' in c)
-EOF
-git add src/components/CreditDeliveryTab.jsx src/App.jsx && git commit -m "Add Credit Delivery tab with BIN tracker and adjustor calculator" && git pushimport { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Kpi, SectionLabel } from './ui'
 
 const S = { border: '0.5px solid #e5e3db', radius: '8px' }
