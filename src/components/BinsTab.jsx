@@ -31,16 +31,16 @@ const PIS_CHECKLIST = [
 
 // Default buildings from BIN spreadsheet + rent roll
 const DEFAULT_BUILDINGS = [
-  { id: 1, building: 1, bin: 'TX 24-40001', total_units: 36, occupied: 14, ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '', co_date: '', expected_pis: 'Q3 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 2, building: 2, bin: 'TX 24-40002', total_units: 30, occupied: 11, ami_mix: '60%', status: 'Placed in service', pis_date: '', co_date: '', expected_pis: 'Q3 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 3, building: 3, bin: 'TX 24-40003', total_units: 30, occupied: 4,  ami_mix: '60%', status: 'CO received', pis_date: '', co_date: '', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 4, building: 4, bin: 'TX 24-40004', total_units: 39, occupied: 6,  ami_mix: '30% & 60%', status: 'CO received', pis_date: '', co_date: '', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 5, building: 5, bin: 'TX 24-40005', total_units: 36, occupied: 1,  ami_mix: '60%', status: 'CO received', pis_date: '', co_date: '', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 6, building: 6, bin: 'TX 24-40006', total_units: 36, occupied: 3,  ami_mix: '60%', status: 'CO received', pis_date: '', co_date: '', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 7, building: 7, bin: 'TX 24-40007', total_units: 36, occupied: 0,  ami_mix: '60%', status: 'Under construction', pis_date: '', co_date: '', expected_pis: 'Q2 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 8, building: 8, bin: 'TX 24-40008', total_units: 36, occupied: 8,  ami_mix: '60%', status: 'CO received', pis_date: '', co_date: '', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 9, building: 9, bin: 'TX 24-40009', total_units: 30, occupied: 0,  ami_mix: '60%', status: 'Under construction', pis_date: '', co_date: '', expected_pis: 'Q2 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 10, building: 10, bin: 'TX 24-40010', total_units: 54, occupied: 16, ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '', co_date: '', expected_pis: 'Q3 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 1, building: 1, bin: 'TX 24-40001', total_units: 36, occupied: 14, ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '2025-11-13', co_date: '2025-11-13', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 2, building: 2, bin: 'TX 24-40002', total_units: 30, occupied: 11, ami_mix: '60%', status: 'Placed in service', pis_date: '2025-11-20', co_date: '2025-11-20', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 3, building: 3, bin: 'TX 24-40003', total_units: 30, occupied: 4,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-02-03', co_date: '2026-02-03', expected_pis: 'Q1 2026', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 4, building: 4, bin: 'TX 24-40004', total_units: 39, occupied: 6,  ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '2026-02-05', co_date: '2026-02-05', expected_pis: 'Q1 2026', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 5, building: 5, bin: 'TX 24-40005', total_units: 36, occupied: 1,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-03-06', co_date: '2026-03-06', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 6, building: 6, bin: 'TX 24-40006', total_units: 36, occupied: 3,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-03-20', co_date: '2026-03-20', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 7, building: 7, bin: 'TX 24-40007', total_units: 36, occupied: 0,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-05-15', co_date: '2026-05-15', expected_pis: 'Q2 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 8, building: 8, bin: 'TX 24-40008', total_units: 36, occupied: 8,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-01-09', co_date: '2026-01-09', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 9, building: 9, bin: 'TX 24-40009', total_units: 30, occupied: 0,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-05-25', co_date: '2026-05-25', expected_pis: 'Q2 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+  { id: 10, building: 10, bin: 'TX 24-40010', total_units: 54, occupied: 16, ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '2025-12-17', co_date: '2025-12-17', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
 ]
 
 const SK = 'lihtc-bins'
