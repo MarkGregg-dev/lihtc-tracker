@@ -1337,9 +1337,9 @@ export default function App() {
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))', gap: 10, marginBottom: '1.5rem' }}>
-        <Kpi label="Projects" value={projects.length} sub={`${vis.length} shown`} />
+        <Kpi label="Projects" value={projects.length} sub={null} />
         <Kpi label="Total units" value={totalUnits.toLocaleString()} />
-        <Kpi label="Portfolio budget" value={fm(totalBudget)} sub={`${fm(totalSpent)} spent · ${pct(totalSpent, totalBudget)}%`} />
+        <Kpi label="Portfolio budget" value={fm(totalBudget)} sub={null} />
         {avgOcc !== null && <Kpi label="Avg occupancy" value={`${avgOcc}%`} sub={`${leasePrj.length} projects`} warn={avgOcc < 80} />}
         {flags > 0 && <Kpi label="Flagged" value={flags} sub="need attention" warn />}
       </div>
