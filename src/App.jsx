@@ -862,7 +862,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
     { id: 'leaseup', label: 'Lease-up intel' },
     { id: 'sitemap', label: 'Site map' },
     { id: 'capital', label: 'Capital sufficiency' },
-    { id: 'performance', label: 'Performance' },
+    { id: 'performance', label: 'Leasing Performance' },
     { id: 'docs', label: 'Documents' },
     { id: 'info', label: 'Info' },
   ]
