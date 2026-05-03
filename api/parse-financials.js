@@ -26,6 +26,7 @@ export default async function handler(req, res) {
 
   try {
     const { base64, mediaType, from, subject, project_id } = req.body
+    console.log('base64 length:', (base64||'').length, 'has content:', !!base64)
 
     if (!base64) return res.status(400).json({ error: 'No base64 content provided' })
 
