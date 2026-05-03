@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { Buffer } from 'buffer'
+import pdfParse from 'pdf-parse'
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -20,18 +21,6 @@ function detectProject(subject, from) {
   return null
 }
 
-async function extractPdfText(base64) {
-  try {
-    const { default: pdfParse } = await import('pdf-parse/lib/pdf-parse.js')
-    const buffer = Buffer.from(base64, 'base64')
-    const data = await pdfParse(buffer, { max: 15 })
-    return data.text
-  } catch (err) {
-    console.error('PDF text extraction error:', err.message)
-    return null
-  }
-}
-
 export const config = { api: { bodyParser: { sizeLimit: '50mb' } } }
 
 export default async function handler(req, res) {
@@ -39,21 +28,23 @@ export default async function handler(req, res) {
 
   try {
     const { base64, mediaType, from, subject, project_id } = req.body
-
     if (!base64) return res.status(400).json({ error: 'No base64 content provided' })
 
     console.log('base64 length:', base64.length, 'subject:', subject)
 
-    // Extract text from PDF instead of sending binary
-    const pdfText = await extractPdfText(base64)
-    console.log('PDF text length:', pdfText ? pdfText.length : 0)
-    console.log('PDF text sample:', pdfText ? pdfText.substring(0, 300) : 'NONE')
-
-    if (!pdfText) {
-      return res.status(200).json({ success: false, error: 'Could not extract text from PDF' })
+    // Extract text from PDF
+    let pdfText = null
+    try {
+      const buffer = Buffer.from(base64, 'base64')
+      const data = await pdfParse(buffer, { max: 15 })
+      pdfText = data.text
+      console.log('PDF text length:', pdfText.length)
+      console.log('PDF text sample:', pdfText.substring(0, 200))
+    } catch (err) {
+      console.error('PDF parse error:', err.message)
+      return res.status(200).json({ success: false, error: 'Could not extract PDF text: ' + err.message })
     }
 
-    // Only send first 15000 chars which covers the financial summary
     const textToSend = pdfText.substring(0, 15000)
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -68,13 +59,13 @@ export default async function handler(req, res) {
         max_tokens: 2000,
         messages: [{
           role: 'user',
-          content: `This is extracted text from a monthly property management report. Extract financial data and return ONLY a JSON object with no markdown.
+          content: `This is extracted text from a monthly property management report for a LIHTC apartment complex. Extract financial data and return ONLY a JSON object with no markdown.
 
 TEXT:
 ${textToSend}
 
-Extract these fields:
-- period: "YYYY-MM" (e.g. "2026-03" for March 2026)
+Extract these fields from the Budget Comparison Summary (PTD Actual column):
+- period: "YYYY-MM" (e.g. "2026-03" for March 2026 - look for "Period = " in the text)
 - period_date: "YYYY-MM-01"
 - gross_potential_rent
 - vacancy_loss (negative)
@@ -97,7 +88,7 @@ Extract these fields:
 - total_units (integer)
 - occupied_units (integer)
 - vacant_units (integer)
-- occupancy_pct (decimal)
+- occupancy_pct (decimal e.g. 17.4)
 - actual_rent_collected
 - delinquency
 
