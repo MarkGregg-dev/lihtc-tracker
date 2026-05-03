@@ -22,7 +22,7 @@ export function FinancialsParser({ projectId, onParsed }) {
         r.readAsDataURL(file)
       })
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const response = await fetch('/api/parse-financials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
