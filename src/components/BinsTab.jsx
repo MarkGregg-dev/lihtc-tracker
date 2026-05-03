@@ -154,60 +154,6 @@ export function BinsTab({ project }) {
         </div>
       )}
 
-      <SectionLabel mt={0}>BIN delivery timeline</SectionLabel>
-      <div style={{ border: S.border, borderRadius: S.radius, overflow: 'hidden', marginBottom: 14 }}>
-        {/* Header */}
-        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', background: '#eceae3', borderBottom: S.border }}>
-          <div style={{ padding: '6px 10px', fontSize: 11, fontWeight: 500, color: '#6b6a63' }}>Building</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', padding: '6px 4px' }}>
-            {['Q3 25','Q4 25','Q1 26','Q2 26','Q3 26','Q4 26','Q1 27','Q2 27'].map(q => (
-              <div key={q} style={{ fontSize: 10, color: '#8f8e87', textAlign: 'center' }}>{q}</div>
-            ))}
-          </div>
-        </div>
-        {buildings.map(b => {
-          const sc = STATUS_COLORS[b.status] || STATUS_COLORS['Not started']
-          const quarters = ['Q3 25','Q4 25','Q1 26','Q2 26','Q3 26','Q4 26','Q1 27','Q2 27']
-          const pisQ = b.pis_date ? null : b.expected_pis?.replace('20','')?.replace(' ','').replace('20','') || null
-          // Map expected_pis to quarter index
-          const qMap = { 'Q3 2025': 0, 'Q4 2025': 1, 'Q1 2026': 2, 'Q2 2026': 3, 'Q3 2026': 4, 'Q4 2026': 5, 'Q1 2027': 6, 'Q2 2027': 7 }
-          const qIdx = qMap[b.expected_pis] ?? -1
-          return (
-            <div key={b.id} style={{ display: 'grid', gridTemplateColumns: '120px 1fr', borderBottom: S.border, background: '#fff' }}>
-              <div style={{ padding: '8px 10px' }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: '#1a1a18' }}>Bldg {b.building}</div>
-                <div style={{ fontSize: 10, color: '#8f8e87' }}>{b.bin}</div>
-                <span style={{ ...sc, padding: '1px 6px', borderRadius: 100, fontSize: 9, fontWeight: 500, display: 'inline-block', marginTop: 2 }}>{b.status}</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', padding: '8px 4px', alignItems: 'center', gap: 2 }}>
-                {quarters.map((q, i) => {
-                  const isPis = i === qIdx
-                  const isDone = b.status === 'Placed in service' && i <= qIdx
-                  const isCo = b.status === 'CO received' && i === qIdx
-                  return (
-                    <div key={q} style={{
-                      height: 20, borderRadius: 4,
-                      background: b.status === 'Placed in service' && i <= qIdx ? '#639922' :
-                                  b.status === 'CO received' && i === qIdx ? '#BA7517' :
-                                  i === qIdx ? '#378ADD' : 'transparent',
-                      border: i === qIdx ? 'none' : 'none',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      {i === qIdx && (
-                        <span style={{ fontSize: 9, color: '#fff', fontWeight: 500 }}>
-                          {b.status === 'Placed in service' ? 'PIS' : b.status === 'CO received' ? 'CO' : 'EXP'}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Per-building detail */}
       <SectionLabel>Buildings & BINs</SectionLabel>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {buildings.map(b => {
