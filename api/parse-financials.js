@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 import { Buffer } from 'buffer'
-import pdfParse from 'pdf-parse'
 
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -21,6 +20,16 @@ function detectProject(subject, from) {
   return null
 }
 
+function cleanPdfText(raw) {
+  // Fix spaced-out characters like "M O N T H L Y" -> "MONTHLY"
+  // Replace single chars separated by spaces
+  let text = raw
+  // Fix letter-by-letter spacing
+  text = text.replace(/([A-Z]) ([A-Z]) ([A-Z])/g, '$1$2$3')
+  text = text.replace(/([A-Z]) ([A-Z])/g, '$1$2')
+  return text
+}
+
 export const config = { api: { bodyParser: { sizeLimit: '50mb' } } }
 
 export default async function handler(req, res) {
@@ -32,20 +41,21 @@ export default async function handler(req, res) {
 
     console.log('base64 length:', base64.length, 'subject:', subject)
 
-    // Extract text from PDF
+    // Extract text using pdf-parse
     let pdfText = null
     try {
+      const pdfParse = (await import('pdf-parse')).default
       const buffer = Buffer.from(base64, 'base64')
-      const data = await pdfParse(buffer, { max: 15 })
-      pdfText = data.text
+      const data = await pdfParse(buffer, { max: 10 })
+      pdfText = cleanPdfText(data.text)
       console.log('PDF text length:', pdfText.length)
-      console.log('PDF text sample:', pdfText.substring(0, 200))
+      console.log('PDF text sample:', pdfText.substring(200, 600))
     } catch (err) {
       console.error('PDF parse error:', err.message)
-      return res.status(200).json({ success: false, error: 'Could not extract PDF text: ' + err.message })
+      return res.status(200).json({ success: false, error: 'PDF extraction failed: ' + err.message })
     }
 
-    const textToSend = pdfText.substring(0, 15000)
+    const textToSend = pdfText.substring(0, 12000)
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -59,72 +69,65 @@ export default async function handler(req, res) {
         max_tokens: 2000,
         messages: [{
           role: 'user',
-          content: `This is extracted text from a monthly property management report for a LIHTC apartment complex. Extract financial data and return ONLY a JSON object with no markdown.
+          content: `Extract financial data from this property management report text. The text may have some formatting artifacts. Look for the Budget Comparison Summary section with PTD Actual values.
+
+Return ONLY a JSON object with these fields:
+- period: "YYYY-MM" (look for "Period = " followed by month/year)
+- period_date: "YYYY-MM-01"
+- gross_potential_rent: (GROSS POTENTIAL RENT PTD Actual value)
+- vacancy_loss: (VACANCY LOSS PTD Actual, negative)
+- concessions: (CONCESSIONS PTD Actual, negative)
+- net_rental_income: (Net Rental Income PTD Actual)
+- other_income: (OTHER OPERATING INCOME PTD Actual)
+- total_operating_income: (TOTAL OPERATING INCOME PTD Actual)
+- salaries_benefits: (SALARIES and BENEFITS PTD Actual, negative)
+- repairs_maintenance: (RPRS and MAINTENANCE PTD Actual, negative)
+- contract_services: (CONTRACT SVCS PTD Actual, negative)
+- utilities: (UTILITIES EXPENSES PTD Actual, negative)
+- general_admin: (GENERAL AND ADMIN PTD Actual, negative)
+- leasing: (LEASING PTD Actual, negative)
+- management_fee: (MANAGEMENT FEES PTD Actual, negative)
+- total_operating_expenses: (TOTAL OPERATING EXPENSES PTD Actual, negative)
+- noi: (NET OPERATING INCOME PTD Actual)
+- ptd_budget_income: (TOTAL OPERATING INCOME PTD Budget)
+- ptd_budget_expenses: (TOTAL OPERATING EXPENSES PTD Budget, negative)
+- ptd_budget_noi: (NET OPERATING INCOME PTD Budget)
 
 TEXT:
 ${textToSend}
 
-Extract these fields from the Budget Comparison Summary (PTD Actual column):
-- period: "YYYY-MM" (e.g. "2026-03" for March 2026 - look for "Period = " in the text)
-- period_date: "YYYY-MM-01"
-- gross_potential_rent
-- vacancy_loss (negative)
-- concessions (negative or 0)
-- net_rental_income
-- other_income
-- total_operating_income
-- salaries_benefits (negative)
-- repairs_maintenance (negative)
-- contract_services (negative)
-- utilities (negative)
-- general_admin (negative)
-- leasing (negative)
-- management_fee (negative)
-- total_operating_expenses (negative)
-- noi
-- ptd_budget_income
-- ptd_budget_expenses (negative)
-- ptd_budget_noi
-- total_units (integer)
-- occupied_units (integer)
-- vacant_units (integer)
-- occupancy_pct (decimal e.g. 17.4)
-- actual_rent_collected
-- delinquency
-
-Return ONLY the JSON object.`
+Return ONLY the JSON.`
         }]
       })
     })
 
     const data = await response.json()
     const text = data.content?.[0]?.text || '{}'
-    console.log('Claude response:', text.substring(0, 400))
+    console.log('Claude response:', text.substring(0, 500))
 
     let parsed = {}
     try {
       parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
     } catch (e) {
-      console.error('JSON parse error:', e.message)
-      return res.status(200).json({ success: false, error: 'Could not parse response', raw: text.substring(0, 200) })
+      console.error('JSON parse error:', e.message, 'raw:', text.substring(0, 300))
+      return res.status(200).json({ success: false, error: 'JSON parse failed', raw: text.substring(0, 300) })
     }
 
     const projectId = project_id || detectProject(subject, from)
+    console.log('Period:', parsed.period, 'NOI:', parsed.noi, 'Project:', projectId)
 
     if (projectId && parsed.period) {
       const { error: dbErr } = await supabase
         .from('monthly_snapshots')
         .upsert({ project_id: projectId, ...parsed }, { onConflict: 'project_id,period' })
       if (dbErr) console.error('Supabase error:', dbErr.message)
-      else console.log('Saved snapshot for period:', parsed.period)
-    } else {
-      console.log('Missing project or period — projectId:', projectId, 'period:', parsed.period)
+      else console.log('Saved snapshot:', parsed.period)
     }
 
     if (from || subject) {
       await supabase.from('email_queue').insert({
         from_email: from || '',
-        subject: subject || '(no subject)',
+        subject: subject || '',
         sender_type: 'pm',
         detected_doc_type: 'pm-report',
         detected_project_id: projectId,
@@ -135,10 +138,10 @@ Return ONLY the JSON object.`
       })
     }
 
-    return res.status(200).json({ success: true, period: parsed.period, noi: parsed.noi, occupancy_pct: parsed.occupancy_pct })
+    return res.status(200).json({ success: true, period: parsed.period, noi: parsed.noi })
 
   } catch (err) {
-    console.error('Parse financials error:', err.message)
+    console.error('Handler error:', err.message)
     return res.status(500).json({ error: err.message })
   }
 }
