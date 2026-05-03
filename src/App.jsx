@@ -933,10 +933,10 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
               const required = unitsNeeded / monthsToDeadline
               return (leasing.monthly_absorption || 22) / required
             })() : 1
-            const isRed = monthsLeft <= 1 || leasingAlert < 0.85
-            const dotColor = isRed ? '#E24B4A' : isAmber ? '#BA7517' : '#639922'
-            const msg = isRed || isAmber ? project.alert_msg : 'All systems OK'
-            const msgColor = isRed ? '#a32d2d' : isAmber ? '#633806' : '#27500A'
+            const isRed2 = monthsLeft <= 1 || leasingAlert < 0.85
+            const dotColor = isRed2 ? '#E24B4A' : isAmber2 ? '#BA7517' : '#639922'
+            const msg = isRed2 || isAmber2 ? project.alert_msg : 'All systems OK'
+            const msgColor = isRed2 ? '#a32d2d' : isAmber2 ? '#633806' : '#27500A'
             return (
               <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
                 <div style={{ width: 7, height: 7, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
