@@ -1283,6 +1283,9 @@ export default function App() {
       {/* Edit modal */}
       {editing && <EditModal project={editing} onSave={() => { setEditing(null); load() }} onClose={() => setEditing(null)} />}
 
+      {/* Email Queue */}
+      <EmailQueue projects={projects} />
+
       {/* Project list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {vis.map(p => (
