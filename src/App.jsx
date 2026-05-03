@@ -934,6 +934,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
               return (leasing.monthly_absorption || 22) / required
             })() : 1
             const isRed2 = monthsLeft <= 1 || leasingAlert < 0.85
+            const isAmber2 = !isRed2 && (monthsLeft <= 3 || leasingAlert < 1.0)
             const dotColor = isRed2 ? '#E24B4A' : isAmber2 ? '#BA7517' : '#639922'
             const msg = isRed2 || isAmber2 ? project.alert_msg : 'All systems OK'
             const msgColor = isRed2 ? '#a32d2d' : isAmber2 ? '#633806' : '#27500A'
