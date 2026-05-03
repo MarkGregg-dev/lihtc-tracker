@@ -64,20 +64,38 @@ module.exports = async function handler(req, res) {
         max_tokens: 2000,
         messages: [{
           role: 'user',
-          content: `Extract financial data from this property management report. Return ONLY a JSON object.
+          content: `This is text extracted from a property management financial report. The format has labels and numbers on separate lines. The first number after each label is the PTD Actual value.
 
-Look for "Period = " to find the month. Find PTD Actual column values.
+Find "Period = " to get the month/year (e.g. "Feb 2026" = "2026-02").
+
+The structure is: LABEL\nnumber\nnumber\nnumber... where numbers are PTD Actual, PTD Budget, Variance, % Var, YTD Actual, YTD Budget, Variance, % Var, Annual in that order.
 
 TEXT:
 ${textToSend}
 
-Return JSON with:
-- period: "YYYY-MM"
-- period_date: "YYYY-MM-01"
-- gross_potential_rent, vacancy_loss (neg), concessions (neg), net_rental_income, other_income, total_operating_income
-- salaries_benefits (neg), repairs_maintenance (neg), contract_services (neg), utilities (neg), general_admin (neg), leasing (neg), management_fee (neg), total_operating_expenses (neg)
-- noi, ptd_budget_income, ptd_budget_expenses (neg), ptd_budget_noi
-- total_units, occupied_units, vacant_units, occupancy_pct, actual_rent_collected, delinquency`
+Return ONLY a JSON object with these exact fields:
+{
+  "period": "YYYY-MM",
+  "period_date": "YYYY-MM-01",
+  "gross_potential_rent": first number after GROSS POTENTIAL RENT,
+  "vacancy_loss": first number after VACANCY LOSS (negative),
+  "concessions": first number after CONCESSIONS (negative),
+  "net_rental_income": first number after Net Rental Income,
+  "other_income": first number after OTHER OPERATING INCOME,
+  "total_operating_income": first number after TOTAL OPERATING INCOME,
+  "salaries_benefits": first number after SALARIES and BENEFITS (negative),
+  "repairs_maintenance": first number after RPRS and MAINTENANCE (negative),
+  "contract_services": first number after CONTRACT SVCS (negative),
+  "utilities": first number after UTILTIES EXPENSES (negative),
+  "general_admin": first number after GENERAL AND ADMIN (negative),
+  "leasing": first number after LEASING (negative),
+  "management_fee": first number after MANAGEMENT FEES (negative),
+  "total_operating_expenses": first number after TOTAL OPERATING EXPENSES (negative),
+  "noi": first number after NET OPERATING INCOME,
+  "ptd_budget_income": second number after TOTAL OPERATING INCOME,
+  "ptd_budget_expenses": second number after TOTAL OPERATING EXPENSES (negative),
+  "ptd_budget_noi": second number after NET OPERATING INCOME
+}`
         }]
       })
     })
