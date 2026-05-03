@@ -32,8 +32,8 @@ export default async function handler(req, res) {
     console.log('base64 length:', base64.length, 'from:', from, 'subject:', subject)
 
     // Truncate large PDFs - first 600KB covers the financial summary pages
-    const truncated = base64.length > 800000 ? base64.substring(0, 800000) : base64
-    console.log('truncated length:', truncated.length)
+    const truncated = base64
+    console.log('sending full PDF, length:', truncated.length)
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
