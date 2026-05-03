@@ -938,7 +938,7 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
             </div>
             <Bar value={draw.total_spent} max={draw.total_budget} color="#378ADD" />
             {draw.construction_spent != null && draw.construction_budget != null && draw.construction_budget > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#8f8e87', marginTop: 5, marginBottom: 2 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#6b6a63', marginTop: 6, marginBottom: 3 }}>
                 <span>Construction complete</span><span style={{ fontWeight: 500, color: '#1a1a18' }}>{pct(draw.construction_spent, draw.construction_budget)}%</span>
               </div>
             )}
