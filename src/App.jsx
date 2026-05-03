@@ -106,7 +106,7 @@ function CapitalSufficiency({ d, leasing }) {
           <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: 10, color: '#6b6a63', display: 'block', marginBottom: 2 }}>Monthly deficit ($)</label>
-              <input type="number" value={monthlyDeficit} onChange={e => setMonthlyDeficit(parseInt(e.target.value)||0)}
+              <input type="text" value={monthlyDeficit.toLocaleString()} onChange={e => setMonthlyDeficit(parseInt(e.target.value.replace(/,/g,''))||0)}
                 style={{ width: '100%', fontSize: 12, padding: '4px 7px', border: S.border, borderRadius: 6 }} />
             </div>
             <div style={{ flex: 1 }}>
