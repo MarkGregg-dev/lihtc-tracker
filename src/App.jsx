@@ -1302,7 +1302,21 @@ export default function App() {
               <button onClick={() => setEmailQueueOpen(false)} style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: '#6b6a63' }}>✕</button>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+              {/* Email Queue slide-out panel */}
+      {emailQueueOpen && (
+        <>
+          <div onClick={() => setEmailQueueOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.2)', zIndex: 999 }} />
+          <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 640, maxWidth: '95vw', background: '#fff', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)', zIndex: 1000, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '0.5px solid #e5e3db', background: '#eceae3' }}>
+              <span style={{ fontSize: 15, fontWeight: 600, color: '#1a1a18' }}>Email Queue</span>
+              <button onClick={() => setEmailQueueOpen(false)} style={{ fontSize: 18, background: 'none', border: 'none', cursor: 'pointer', color: '#6b6a63' }}>✕</button>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
               <EmailQueue projects={projects} />
+            </div>
+          </div>
+        </>
+      )}
             </div>
           </div>
         </>
