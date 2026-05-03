@@ -153,7 +153,6 @@ function CapitalSufficiency({ d, leasing }) {
       </div>
       <div style={{ fontSize: 10, color: '#8f8e87', textAlign: 'center' }}>Red = operating deficit · Green = positive NOI · Adjust inputs above to model different scenarios</div>
     </div>
-      </div>
   )
 }
 
@@ -870,7 +869,6 @@ function ProjectCard({ project, onEdit, onDelete, onRefresh }) {
 
   return (
     <div style={{ background: '#fff', border: open ? '0.5px solid #888780' : S.border, borderRadius: S.radiusLg, padding: '1rem 1.25rem', transition: 'border-color .15s' }}>
-      <div style={{ filter: dark ? 'invert(1) hue-rotate(180deg)' : 'none', minHeight: '100vh', background: dark ? '#0f0f0e' : '#f5f4f0', transition: 'background 0.2s' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }} onClick={() => setOpen(o => !o)}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1147,11 +1145,7 @@ function RiskAlertBar({ projects }) {
 
 // ── Main App ──────────────────────────────────────────────────────────
 export default function App() {
-  const [dark, setDark] = useState(() => localStorage.getItem('dark') !== 'false')
-  useEffect(() => {
-    document.body.classList.toggle('dark', dark)
-    localStorage.setItem('dark', dark)
-  }, [dark])
+
   const [authed, setAuthed] = useState(true)
   const [authReady, setAuthReady] = useState(false)
   const [pw, setPw] = useState('')
@@ -1264,9 +1258,7 @@ export default function App() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ fontSize: 20, fontWeight: 500, color: '#1a1a18' }}>Development Dashboard</span>
-            <button onClick={() => setDark(d => !d)} style={{ marginLeft: 12, fontSize: 11, padding: '4px 12px', borderRadius: 20, border: '0.5px solid #e5e3db', background: '#eceae3', color: '#6b6a63', cursor: 'pointer' }}>
-              {dark ? 'Light mode' : 'Dark mode'}
-            </button>
+
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {['all', 'Construction', 'Lease-up', 'Stabilized'].map(f => (
             <span key={f} onClick={() => setFilter(f)} style={{
