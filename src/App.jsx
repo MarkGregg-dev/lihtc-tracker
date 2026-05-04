@@ -1069,13 +1069,18 @@ function EditModal({ project, onSave, onClose }) {
     investor: project.investor || '',
     lender: project.lender || '',
     pm_company: project.pm_company || '',
+    ami_str: (project.ami || []).join(', ') || '',
+    total_budget: project.total_budget || '',
+    stab_deadline: project.stab_deadline || '',
+    bond_amount: project.bond_amount || '',
     notes: project.notes || '',
   })
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   async function handleSave() {
     try {
-      await upsertProject({ ...project, ...form, units: parseInt(form.units) || 0, tc_year: parseInt(form.tc_year) || null })
+      const ami = form.ami_str ? form.ami_str.split(',').map(s => parseInt(s.trim())).filter(Boolean) : project.ami || []
+      await upsertProject({ ...project, ...form, units: parseInt(form.units) || 0, tc_year: parseInt(form.tc_year) || null, ami, total_budget: parseFloat(form.total_budget) || null, bond_amount: parseFloat(form.bond_amount) || null })
       onSave()
     } catch (err) { alert('Save failed: ' + err.message) }
   }
@@ -1083,9 +1088,9 @@ function EditModal({ project, onSave, onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
       <div style={{ background: '#fff', borderRadius: 16, padding: '1.5rem', width: '100%', maxWidth: 600, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.15)' }}>
-        <div style={{ fontSize: 15, fontWeight: 500, color: '#1a1a18', marginBottom: 16 }}>Edit — {project.name}</div>
+        <div style={{ fontSize: 15, fontWeight: 500, color: '#1a1a18', marginBottom: 16 }}>{project.name ? 'Edit — ' + project.name : 'New project'}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-          {[['Project name','name','text'],['City, state','city','text'],['Total units','units','number'],['Tax credit year','tc_year','number'],['Equity investor','investor','text'],['Lender','lender','text'],['PM company','pm_company','text']].map(([label, key, type]) => (
+          {[['Project name','name','text'],['City, state','city','text'],['Total units','units','number'],['Tax credit year','tc_year','number'],['Equity investor','investor','text'],['Lender','lender','text'],['PM company','pm_company','text'],['AMI mix (e.g. 30%, 60%)','ami_str','text'],['Total budget','total_budget','number'],['Stabilization deadline','stab_deadline','text'],['Bond amount','bond_amount','number']].map(([label, key, type]) => (
             <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <label style={{ fontSize: 11, color: '#6b6a63' }}>{label}</label>
               <input type={type} value={form[key]} onChange={e => set(key, e.target.value)}
@@ -1415,7 +1420,7 @@ export default function App() {
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <Btn onClick={() => alert('Add project — coming soon. Run seed.js to add projects via the database.')}>+ Add project</Btn>
+        <Btn onClick={() => setEditing({ id: undefined, name: '', city: '', stage: 'Construction', units: '', alert: 'green', alert_msg: '', tc_year: new Date().getFullYear(), investor: '', lender: '', pm_company: '', notes: '', ami: [], sort_order: projects.length + 1 })}>+ Add project</Btn>
       </div>
     </div>
   )
