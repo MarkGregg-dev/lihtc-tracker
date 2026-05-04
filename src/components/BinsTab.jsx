@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { uploadDocument, getDocumentUrl, deleteDocument, fmtBytes } from '../lib/supabase'
 import { SectionLabel, Kpi, Btn } from './ui'
@@ -29,32 +28,64 @@ const PIS_CHECKLIST = [
   'Bonus depreciation eligibility confirmed',
 ]
 
-// Default buildings from BIN spreadsheet + rent roll
-const DEFAULT_BUILDINGS = [
-  { id: 1, building: 1, bin: 'TX 24-40001', total_units: 36, occupied: 14, ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '2025-11-13', co_date: '2025-11-13', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 2, building: 2, bin: 'TX 24-40002', total_units: 30, occupied: 11, ami_mix: '60%', status: 'Placed in service', pis_date: '2025-11-20', co_date: '2025-11-20', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 3, building: 3, bin: 'TX 24-40003', total_units: 30, occupied: 4,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-02-03', co_date: '2026-02-03', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 4, building: 4, bin: 'TX 24-40004', total_units: 39, occupied: 6,  ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '2026-02-05', co_date: '2026-02-05', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 5, building: 5, bin: 'TX 24-40005', total_units: 36, occupied: 1,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-03-06', co_date: '2026-03-06', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 6, building: 6, bin: 'TX 24-40006', total_units: 36, occupied: 3,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-03-20', co_date: '2026-03-20', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 7, building: 7, bin: 'TX 24-40007', total_units: 36, occupied: 0,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-05-15', co_date: '2026-05-15', expected_pis: 'Q2 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 8, building: 8, bin: 'TX 24-40008', total_units: 36, occupied: 8,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-01-09', co_date: '2026-01-09', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 9, building: 9, bin: 'TX 24-40009', total_units: 30, occupied: 0,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-05-25', co_date: '2026-05-25', expected_pis: 'Q2 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
-  { id: 10, building: 10, bin: 'TX 24-40010', total_units: 54, occupied: 16, ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '2025-12-17', co_date: '2025-12-17', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
-]
+// Per-project default buildings. Keyed by project_id.
+// If a project_id isn't in this map, the empty array is used (no buildings shown).
+const DEFAULTS_BY_PROJECT = {
+  // Centerpoint Depot
+  '79ab3b84-8837-4d77-b160-5a66861f45c0': [
+    { id: 1, building: 1, bin: 'TX 24-40001', total_units: 36, occupied: 14, ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '2025-11-13', co_date: '2025-11-13', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 2, building: 2, bin: 'TX 24-40002', total_units: 30, occupied: 11, ami_mix: '60%', status: 'Placed in service', pis_date: '2025-11-20', co_date: '2025-11-20', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 3, building: 3, bin: 'TX 24-40003', total_units: 30, occupied: 4,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-02-03', co_date: '2026-02-03', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 4, building: 4, bin: 'TX 24-40004', total_units: 39, occupied: 6,  ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '2026-02-05', co_date: '2026-02-05', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 5, building: 5, bin: 'TX 24-40005', total_units: 36, occupied: 1,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-03-06', co_date: '2026-03-06', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 6, building: 6, bin: 'TX 24-40006', total_units: 36, occupied: 3,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-03-20', co_date: '2026-03-20', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 7, building: 7, bin: 'TX 24-40007', total_units: 36, occupied: 0,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-05-15', co_date: '2026-05-15', expected_pis: 'Q2 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 8, building: 8, bin: 'TX 24-40008', total_units: 36, occupied: 8,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-01-09', co_date: '2026-01-09', expected_pis: 'Q1 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 9, building: 9, bin: 'TX 24-40009', total_units: 30, occupied: 0,  ami_mix: '60%', status: 'Placed in service', pis_date: '2026-05-25', co_date: '2026-05-25', expected_pis: 'Q2 2026', bonus_depr_year: 2026, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 10, building: 10, bin: 'TX 24-40010', total_units: 54, occupied: 16, ami_mix: '30% & 60%', status: 'Placed in service', pis_date: '2025-12-17', co_date: '2025-12-17', expected_pis: 'Q4 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+  ],
+  // Creedmoor Apartments
+  '30ba3e56-e9be-4aad-8b8f-8743bb6f53ac': [
+    { id: 1,  building: 1,  bin: 'TX 23-47901', total_units: 30, occupied: 29, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-03-11', co_date: '2025-03-11', expected_pis: 'Q1 2025', bonus_depr_year: 2025, first_credit_year: 2025, checklist: {}, notes: '' },
+    { id: 2,  building: 2,  bin: 'TX 23-47902', total_units: 30, occupied: 30, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-03-11', co_date: '2025-03-11', expected_pis: 'Q1 2025', bonus_depr_year: 2025, first_credit_year: 2025, checklist: {}, notes: '' },
+    { id: 3,  building: 3,  bin: 'TX 23-47903', total_units: 30, occupied: 27, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-03-17', co_date: '2025-03-17', expected_pis: 'Q1 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 4,  building: 4,  bin: 'TX 23-47904', total_units: 30, occupied: 19, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-04-03', co_date: '2025-04-03', expected_pis: 'Q2 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 5,  building: 5,  bin: 'TX 23-47905', total_units: 30, occupied: 30, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-04-15', co_date: '2025-04-15', expected_pis: 'Q2 2025', bonus_depr_year: 2025, first_credit_year: 2025, checklist: {}, notes: '' },
+    { id: 6,  building: 6,  bin: 'TX 23-47906', total_units: 30, occupied: 27, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-04-21', co_date: '2025-04-21', expected_pis: 'Q2 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 7,  building: 7,  bin: 'TX 23-47907', total_units: 30, occupied: 16, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-04-28', co_date: '2025-04-28', expected_pis: 'Q2 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 8,  building: 8,  bin: 'TX 23-47908', total_units: 30, occupied: 14, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-05-21', co_date: '2025-05-21', expected_pis: 'Q2 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 9,  building: 9,  bin: 'TX 23-47909', total_units: 30, occupied: 19, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-05-21', co_date: '2025-05-21', expected_pis: 'Q2 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+    { id: 10, building: 10, bin: 'TX 23-47910', total_units: 30, occupied: 19, ami_mix: '30/40/50/60%', status: 'Placed in service', pis_date: '2025-06-02', co_date: '2025-06-02', expected_pis: 'Q2 2025', bonus_depr_year: 2025, first_credit_year: 2026, checklist: {}, notes: '' },
+  ],
+}
 
 const SK = 'lihtc-bins'
 
+function loadBuildings(projectId) {
+  try {
+    const saved = localStorage.getItem(SK + '-' + projectId)
+    if (saved) {
+      return JSON.parse(saved).map(b => ({ ...b, checklist: b.checklist || {} }))
+    }
+  } catch {}
+  return DEFAULTS_BY_PROJECT[projectId] || []
+}
+
 export function BinsTab({ project }) {
-  const [buildings, setBuildings] = useState(() => {
-    try {
-      const saved = localStorage.getItem(SK + '-' + project.id)
-      return saved ? JSON.parse(saved).map(b => ({...b, checklist: b.checklist || {}})) : DEFAULT_BUILDINGS
-    } catch { return DEFAULT_BUILDINGS }
-  })
+  const [buildings, setBuildings] = useState(() => loadBuildings(project.id))
   const [expanded, setExpanded] = useState(null)
   const [editing, setEditing] = useState(null)
   const [editVals, setEditVals] = useState({})
+
+  // Reload BINs whenever the project changes (the useState initializer above
+  // only runs once on first mount, so without this, switching projects shows
+  // stale buildings data from the previously-viewed project).
+  useEffect(() => {
+    setBuildings(loadBuildings(project.id))
+    setExpanded(null)
+    setEditing(null)
+    setEditVals({})
+  }, [project.id])
 
   function save(updated) {
     setBuildings(updated)
@@ -205,10 +236,9 @@ export function BinsTab({ project }) {
                           ['BIN #', 'bin', 'text'],
                           ['Status', 'status', 'select'],
                           ['CO date', 'co_date', 'text'],
-                          
                           ['Expected PIS', 'expected_pis', 'text'],
                           ['Bonus depr year', 'bonus_depr_year', 'number'],
-          ['First credit year', 'first_credit_year', 'number'],
+                          ['First credit year', 'first_credit_year', 'number'],
                           ['AMI mix', 'ami_mix', 'text'],
                           ['Units', 'total_units', 'number'],
                         ].map(([label, key, type]) => (
@@ -249,7 +279,7 @@ export function BinsTab({ project }) {
                           ['CO date', b.co_date || '—'],
                           ['CO / PIS date', b.co_date || '—'],
                           ['Bonus depr', b.bonus_depr_year ? `${b.bonus_depr_year} (${b.bonus_depr_year === 2025 ? '40%' : '20%'})` : '—'],
-                        ['First credit year', b.first_credit_year || '2026'],
+                          ['First credit year', b.first_credit_year || '2026'],
                         ].map(([label, val]) => (
                           <div key={label}>
                             <div style={{ fontSize: 11, color: '#6b6a63', marginBottom: 2 }}>{label}</div>
