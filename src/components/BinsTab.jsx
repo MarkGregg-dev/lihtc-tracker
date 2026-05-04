@@ -49,7 +49,7 @@ export function BinsTab({ project }) {
   const [buildings, setBuildings] = useState(() => {
     try {
       const saved = localStorage.getItem(SK + '-' + project.id)
-      return saved ? JSON.parse(saved) : DEFAULT_BUILDINGS
+      return saved ? JSON.parse(saved).map(b => ({...b, checklist: b.checklist || {}})) : DEFAULT_BUILDINGS
     } catch { return DEFAULT_BUILDINGS }
   })
   const [expanded, setExpanded] = useState(null)
@@ -74,7 +74,7 @@ export function BinsTab({ project }) {
   function toggleChecklist(bldgId, item) {
     save(buildings.map(b => {
       if (b.id !== bldgId) return b
-      const cl = { ...b.checklist, [item]: !b.checklist[item] }
+      const cl = { ...b.checklist, [item]: !b.checklist?.[item] }
       return { ...b, checklist: cl }
     }))
   }
@@ -160,7 +160,7 @@ export function BinsTab({ project }) {
           const sc = STATUS_COLORS[b.status] || STATUS_COLORS['Not started']
           const isOpen = expanded === b.id
           const isEditing = editing === b.id
-          const checkDone = PIS_CHECKLIST.filter(item => b.checklist[item]).length
+          const checkDone = PIS_CHECKLIST.filter(item => b.checklist?.[item]).length
           const occPct = b.total_units ? Math.round((b.occupied / b.total_units) * 100) : 0
 
           return (
@@ -289,11 +289,11 @@ export function BinsTab({ project }) {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
                         {PIS_CHECKLIST.map(item => (
                           <div key={item} onClick={() => toggleChecklist(b.id, item)}
-                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: b.checklist[item] ? '#EAF3DE' : '#f5f4f0', cursor: 'pointer', border: S.border }}>
-                            <div style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${b.checklist[item] ? '#639922' : '#c8c6bc'}`, background: b.checklist[item] ? '#639922' : '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              {b.checklist[item] && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>✓</span>}
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: b.checklist?.[item] ? '#EAF3DE' : '#f5f4f0', cursor: 'pointer', border: S.border }}>
+                            <div style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${b.checklist?.[item] ? '#639922' : '#c8c6bc'}`, background: b.checklist?.[item] ? '#639922' : '#fff', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              {b.checklist?.[item] && <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>✓</span>}
                             </div>
-                            <span style={{ fontSize: 12, color: b.checklist[item] ? '#27500A' : '#1a1a18', textDecoration: b.checklist[item] ? 'line-through' : 'none' }}>{item}</span>
+                            <span style={{ fontSize: 12, color: b.checklist?.[item] ? '#27500A' : '#1a1a18', textDecoration: b.checklist?.[item] ? 'line-through' : 'none' }}>{item}</span>
                           </div>
                         ))}
                       </div>
