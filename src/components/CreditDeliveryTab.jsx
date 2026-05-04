@@ -118,7 +118,7 @@ function defaultBuildings() {
     { id:7,  building:7,  bin:'TX 24-40007', total_units:36, ami_mix:'60%',       status:'Under construction', co_date:'2026-05-15', bonus_depr_year:2026, fcy:2026 },
     { id:8,  building:8,  bin:'TX 24-40008', total_units:36, ami_mix:'60%',       status:'CO received', co_date:'2026-01-09', bonus_depr_year:2026, fcy:2026 },
     { id:9,  building:9,  bin:'TX 24-40009', total_units:30, ami_mix:'60%',       status:'Under construction', co_date:'2026-05-25', bonus_depr_year:2026, fcy:2026 },
-    { id:10, building:10, bin:'TX 24-40010', total_units:54, ami_mix:'30% & 60%', status:'CO received', co_date:'2026-12-17', bonus_depr_year:2025, fcy:2026 },
+    { id:10, building:10, bin:'TX 24-40010', total_units:54, ami_mix:'30% & 60%', status:'CO received', co_date:'2025-12-17', bonus_depr_year:2025, fcy:2026 },
   ]
 }
 

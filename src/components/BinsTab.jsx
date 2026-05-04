@@ -183,7 +183,7 @@ export function BinsTab({ project }) {
                     <span style={{ fontSize: 11, color: '#6b6a63' }}>{b.total_units} units · {b.occupied} occupied ({occPct}%)</span>
                     <span style={{ fontSize: 11, color: '#6b6a63' }}>{b.ami_mix}</span>
                     {b.expected_pis && <span style={{ fontSize: 11, color: '#6b6a63' }}>Expected PIS: {b.expected_pis}</span>}
-                    {b.pis_date && <span style={{ fontSize: 11, color: '#27500A', fontWeight: 500 }}>PIS: {b.pis_date}</span>}
+                    {b.co_date && <span style={{ fontSize: 11, color: '#27500A', fontWeight: 500 }}>CO/PIS: {b.co_date}</span>}
                     <span style={{ fontSize: 11, color: '#6b6a63' }}>Yr 1 credits: <strong style={{ color: '#1a1a18' }}>{b.first_credit_year || 2026}</strong></span>
                   </div>
                 </div>
@@ -205,7 +205,7 @@ export function BinsTab({ project }) {
                           ['BIN #', 'bin', 'text'],
                           ['Status', 'status', 'select'],
                           ['CO date', 'co_date', 'text'],
-                          ['PIS date (actual)', 'pis_date', 'text'],
+                          
                           ['Expected PIS', 'expected_pis', 'text'],
                           ['Bonus depr year', 'bonus_depr_year', 'number'],
           ['First credit year', 'first_credit_year', 'number'],
@@ -247,7 +247,7 @@ export function BinsTab({ project }) {
                           ['AMI mix', b.ami_mix],
                           ['Expected PIS', b.expected_pis || '—'],
                           ['CO date', b.co_date || '—'],
-                          ['PIS date', b.pis_date || '—'],
+                          ['CO / PIS date', b.co_date || '—'],
                           ['Bonus depr', b.bonus_depr_year ? `${b.bonus_depr_year} (${b.bonus_depr_year === 2025 ? '40%' : '20%'})` : '—'],
                         ['First credit year', b.first_credit_year || '2026'],
                         ].map(([label, val]) => (
