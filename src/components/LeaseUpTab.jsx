@@ -161,15 +161,6 @@ export function LeaseUpTab() {
           )
         })}
       </div>
-
-      <SectionLabel>Vacancy context (as of April 22, 2026)</SectionLabel>
-      <div style={{ background: '#eceae3', borderRadius: S.radius, padding: '10px 14px', fontSize: 11, color: '#6b6a63', lineHeight: 1.8 }}>
-        <div>• <strong style={{ color: '#1a1a18' }}>Buildings 1 & 2</strong> — open longest (159 / 145 days), vacant units have gone unrented the most days. Top priority.</div>
-        <div>• <strong style={{ color: '#1a1a18' }}>Building 10</strong> — largest building (54 units), 38 vacant, but pace of 3.9/mo is acceptable. Volume focus.</div>
-        <div>• <strong style={{ color: '#a32d2d' }}>Building 5</strong> — only 1.2/mo. At this pace won't fill until Sep 2028. Needs immediate intervention.</div>
-        <div>• <strong style={{ color: '#1a1a18' }}>Buildings 7 & 9</strong> — zero leases. Confirm CO status and leasing office activation.</div>
-        <div>• <strong style={{ color: '#633806' }}>Required pace: {NEEDED_PER_MONTH} units/month</strong> to hit Jun 2027 deadline. Currently {MONTHLY_RATE}/mo. Gap: {NEEDED_PER_MONTH - MONTHLY_RATE} units/month.</div>
       </div>
-    </div>
   )
 }
